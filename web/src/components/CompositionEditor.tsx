@@ -639,9 +639,12 @@ function Section({ title, icon, expanded, onToggle, help, children }: SectionPro
           {icon}
           <h3 className="text-lg font-bold text-white">{title}</h3>
           {help && (
-            <div title={help} className="cursor-help">
+            <span className="group relative inline-flex items-center">
               <HelpCircle className="w-4 h-4 text-gray-400" />
-            </div>
+              <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-48 p-2 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-normal">
+                {help}
+              </span>
+            </span>
           )}
         </div>
         {expanded ? (
