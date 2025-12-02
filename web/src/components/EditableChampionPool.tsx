@@ -287,12 +287,57 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     return map;
   }, [allChampions]);
 
+  // Função auxiliar para buscar campeão no CHAMPION_MEMORY (normaliza nome)
+  const getChampionMemoryData = (championName: string) => {
+    // Tenta com o nome original primeiro
+    if (CHAMPION_MEMORY[championName]) {
+      return CHAMPION_MEMORY[championName];
+    }
+    
+    // Normaliza o nome (remove apóstrofos, espaços, etc.)
+    const normalized = championName.replace(/\s/g, '').replace(/'/g, '').replace(/\./g, '').replace(/&/g, '');
+    if (CHAMPION_MEMORY[normalized]) {
+      return CHAMPION_MEMORY[normalized];
+    }
+    
+    // Casos especiais conhecidos
+    const specialCases: Record<string, string> = {
+      "Kai'Sa": "Kaisa",
+      "KaiSa": "Kaisa",
+      "LeBlanc": "Leblanc",
+      "Bel'Veth": "Belveth",
+      "Cho'Gath": "Chogath",
+      "Kha'Zix": "Khazix",
+      "Vel'Koz": "Velkoz",
+      "K'Sante": "KSante",
+      "Rek'Sai": "RekSai",
+      "Kog'Maw": "KogMaw",
+      "Miss Fortune": "MissFortune",
+      "Dr. Mundo": "DrMundo",
+      "Aurelion Sol": "AurelionSol",
+      "Jarvan IV": "JarvanIV",
+      "Lee Sin": "LeeSin",
+      "Master Yi": "MasterYi",
+      "Tahm Kench": "TahmKench",
+      "Twisted Fate": "TwistedFate",
+      "Xin Zhao": "XinZhao",
+      "Nunu & Willump": "Nunu",
+      "Renata Glasc": "Renata",
+    };
+    
+    if (specialCases[championName] && CHAMPION_MEMORY[specialCases[championName]]) {
+      return CHAMPION_MEMORY[specialCases[championName]];
+    }
+    
+    return undefined;
+  };
+
   // Filtra campeões por lane
   const filteredChampions = useMemo(() => {
     if (!selectedLane) return allChampions;
     
     return allChampions.filter(champ => {
-      const champData = CHAMPION_MEMORY[champ.name];
+      const champData = getChampionMemoryData(champ.name);
       return champData?.roles.includes(selectedLane);
     });
   }, [allChampions, selectedLane]);
