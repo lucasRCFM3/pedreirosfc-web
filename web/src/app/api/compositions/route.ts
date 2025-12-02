@@ -1,45 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { COMPOSITIONS, Composition } from "@/config/compositions";
+import { saveData, loadData } from "@/lib/storage";
 
-const DATA_FILE = path.join(process.cwd(), "data", "compositions.json");
+const STORAGE_KEY = "compositions";
 
-// Garante que o diretório existe
-async function ensureDataDir() {
-  const dataDir = path.dirname(DATA_FILE);
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-// Carrega dados do arquivo ou retorna padrão
+// Carrega dados do storage ou retorna padrão
 async function loadCompositions(): Promise<Composition[]> {
-  await ensureDataDir();
+  const saved = await loadData<Composition[]>(STORAGE_KEY);
   
-  try {
-    const fileContent = await fs.readFile(DATA_FILE, "utf-8");
-    const parsed = JSON.parse(fileContent);
-    
-    // Valida estrutura
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch (error) {
-    // Arquivo não existe ou está corrompido, retorna padrão
-    console.log("[Compositions API] Arquivo não encontrado, usando dados padrão");
+  if (saved && Array.isArray(saved)) {
+    return saved;
   }
   
   // Retorna dados padrão do COMPOSITIONS
   return COMPOSITIONS;
 }
 
-// Salva dados no arquivo
-async function saveCompositions(data: Composition[]): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+// Salva dados no storage
+async function saveCompositions(data: Composition[]): Promise<boolean> {
+  return await saveData(STORAGE_KEY, data);
 }
 
 // GET - Retorna as composições
@@ -47,18 +26,9 @@ export async function GET(request: NextRequest) {
   try {
     const compositions = await loadCompositions();
     
-    // Tenta pegar a data de modificação do arquivo
-    let lastModified = new Date().toISOString();
-    try {
-      const stats = await fs.stat(DATA_FILE);
-      lastModified = stats.mtime.toISOString();
-    } catch {
-      // Arquivo não existe ainda, usa data atual
-    }
-    
     return NextResponse.json({
       compositions,
-      lastModified,
+      lastModified: new Date().toISOString(),
     });
   } catch (error) {
     console.error("[Compositions API] Erro ao carregar:", error);
@@ -92,7 +62,14 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    await saveCompositions(compositions);
+    const saved = await saveCompositions(compositions);
+    
+    if (!saved) {
+      return NextResponse.json(
+        { error: "Erro ao salvar dados. Verifique se o banco de dados está configurado." },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,

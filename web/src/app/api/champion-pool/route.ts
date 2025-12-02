@@ -1,36 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { CHAMPION_POOL } from "@/config/championPool";
 import { Tier } from "@/config/championPool";
+import { saveData, loadData } from "@/lib/storage";
 
-const DATA_FILE = path.join(process.cwd(), "data", "champion-pool.json");
+const STORAGE_KEY = "champion-pool";
 
-// Garante que o diretório existe
-async function ensureDataDir() {
-  const dataDir = path.dirname(DATA_FILE);
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
-}
-
-// Carrega dados do arquivo ou retorna padrão
+// Carrega dados do storage ou retorna padrão
 async function loadPoolData(): Promise<Record<string, Record<Tier, string[]>>> {
-  await ensureDataDir();
+  const saved = await loadData<Record<string, Record<Tier, string[]>>>(STORAGE_KEY);
   
-  try {
-    const fileContent = await fs.readFile(DATA_FILE, "utf-8");
-    const parsed = JSON.parse(fileContent);
-    
-    // Valida estrutura
-    if (parsed && typeof parsed === "object") {
-      return parsed;
-    }
-  } catch (error) {
-    // Arquivo não existe ou está corrompido, retorna padrão
-    console.log("[Champion Pool] Arquivo não encontrado, usando dados padrão");
+  if (saved) {
+    return saved;
   }
   
   // Retorna dados padrão do CHAMPION_POOL
@@ -48,10 +28,9 @@ async function loadPoolData(): Promise<Record<string, Record<Tier, string[]>>> {
   return initial;
 }
 
-// Salva dados no arquivo
-async function savePoolData(data: Record<string, Record<Tier, string[]>>): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+// Salva dados no storage
+async function savePoolData(data: Record<string, Record<Tier, string[]>>): Promise<boolean> {
+  return await saveData(STORAGE_KEY, data);
 }
 
 // GET - Retorna os dados da champion pool
@@ -59,18 +38,9 @@ export async function GET(request: NextRequest) {
   try {
     const data = await loadPoolData();
     
-    // Tenta pegar a data de modificação do arquivo
-    let lastModified = new Date().toISOString();
-    try {
-      const stats = await fs.stat(DATA_FILE);
-      lastModified = stats.mtime.toISOString();
-    } catch {
-      // Arquivo não existe ainda, usa data atual
-    }
-    
     return NextResponse.json({
       data,
-      lastModified,
+      lastModified: new Date().toISOString(),
     });
   } catch (error) {
     console.error("[Champion Pool API] Erro ao carregar:", error);
@@ -108,7 +78,14 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    await savePoolData(data);
+    const saved = await savePoolData(data);
+    
+    if (!saved) {
+      return NextResponse.json(
+        { error: "Erro ao salvar dados. Verifique se o banco de dados está configurado." },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({
       success: true,
