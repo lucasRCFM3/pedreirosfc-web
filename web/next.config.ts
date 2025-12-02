@@ -14,10 +14,10 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    // Desabilita otimização em desenvolvimento para evitar problemas com Cloudflare Tunnel
+    // Desabilita otimização para evitar problemas com Netlify e Cloudflare Tunnel
     // As imagens do Data Dragon já são otimizadas pelo CDN da Riot
-    // Isso evita requisições de otimização que causam "context canceled" no tunnel
-    unoptimized: process.env.NODE_ENV === 'development',
+    // Isso evita requisições de otimização que causam problemas no deploy
+    unoptimized: true,
   },
   // Configurações para melhor compatibilidade com Cloudflare Tunnel
   // Aumenta timeouts para evitar "context canceled" errors

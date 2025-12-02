@@ -135,12 +135,12 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
   const data = await getPlayerStats(member.gameName, member.tagLine, queueId, false, roleKey);
 
   const isSupport = roleKey === 'support';
-  const avgGameDurationMin = data && data.avgDuration > 0 ? data.avgDuration / 60 : 30;
+  const avgGameDurationMin = data && data.avgDuration && data.avgDuration > 0 ? data.avgDuration / 60 : 30;
   
-  const avgCsPerMin = data ? Number(data.avgCs) / avgGameDurationMin : 0;
-  const avgVisionPerMin = data ? Number(data.avgVision) / avgGameDurationMin : 0;
-  const winRate = data ? (data.matches.filter(m => m.win).length / data.matches.length) * 100 : 0;
-  const avgKillParticipation = data ? data.avgKillParticipation : 0;
+  const avgCsPerMin = data && data.avgCs && avgGameDurationMin > 0 ? Number(data.avgCs) / avgGameDurationMin : 0;
+  const avgVisionPerMin = data && data.avgVision && avgGameDurationMin > 0 ? Number(data.avgVision) / avgGameDurationMin : 0;
+  const winRate = data && data.matches && data.matches.length > 0 ? (data.matches.filter(m => m.win).length / data.matches.length) * 100 : 0;
+  const avgKillParticipation = data && data.avgKillParticipation ? data.avgKillParticipation : 0;
 
   const headerMetricColor = isSupport 
       ? getVisionColor(avgVisionPerMin, roleKey)
@@ -292,13 +292,19 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
             <div className="flex flex-col gap-3">
                 {data.matches.map((match) => {
                     const isWin = match.win;
-                    const kdaRatio = match.deaths === 0 ? (match.kills + match.assists) : ((match.kills + match.assists) / match.deaths).toFixed(2);
+                    const kills = match.kills || 0;
+                    const deaths = match.deaths || 0;
+                    const assists = match.assists || 0;
+                    const kdaRatio = deaths === 0 ? (kills + assists).toFixed(2) : ((kills + assists) / deaths).toFixed(2);
                     
-                    const gameMin = match.gameDuration / 60;
-                    const csPerMin = Number((match.cs / gameMin).toFixed(1));
+                    const gameDuration = match.gameDuration || 0;
+                    const gameMin = gameDuration > 0 ? gameDuration / 60 : 1; // Evita divisão por zero
+                    const cs = match.cs || 0;
+                    const csPerMin = gameMin > 0 ? Number((cs / gameMin).toFixed(1)) : 0;
                     const csColor = getCsColor(csPerMin, roleKey);
 
-                    const visionPerMin = Number((match.visionScore / gameMin).toFixed(1));
+                    const visionScore = match.visionScore || 0;
+                    const visionPerMin = gameMin > 0 ? Number((visionScore / gameMin).toFixed(1)) : 0;
                     const visionColor = getVisionColor(visionPerMin, roleKey);
                     
                     const isSupport = roleKey === 'support';
@@ -332,17 +338,17 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         {/* KDA & KP% */}
                         <div className="flex-1 flex flex-col items-center justify-center border-l border-white/5 border-r px-4 md:px-8 gap-1">
                             <div className="flex items-baseline gap-1 text-lg font-medium text-gray-200 tabular-nums">
-                                <span>{match.kills}</span>
+                                <span>{kills}</span>
                                 <span className="text-gray-600 text-sm">/</span>
-                                <span className="text-red-400">{match.deaths}</span>
+                                <span className="text-red-400">{deaths}</span>
                                 <span className="text-gray-600 text-sm">/</span>
-                                <span>{match.assists}</span>
+                                <span>{assists}</span>
                             </div>
                             <div className="text-xs text-gray-500 font-mono">
                                 {kdaRatio} KDA
                             </div>
-                            <div className={`text-xs font-mono ${getKillParticipationColor(match.killParticipation, roleKey)}`}>
-                                {match.killParticipation.toFixed(0)}% KP
+                            <div className={`text-xs font-mono ${getKillParticipationColor(match.killParticipation || 0, roleKey)}`}>
+                                {(match.killParticipation || 0).toFixed(0)}% KP
                             </div>
                         </div>
 
@@ -350,15 +356,15 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         <div className="w-40 text-right hidden md:flex flex-col justify-center gap-1">
                             {isSupport ? (
                                 <div className={`text-sm font-mono font-bold flex items-center justify-end gap-2 ${visionColor}`}>
-                                    <Eye className="w-3 h-3" /> {match.visionScore} ({visionPerMin}/m)
+                                    <Eye className="w-3 h-3" /> {visionScore} ({visionPerMin}/m)
                                 </div>
                             ) : (
                                 <>
                                     <div className={`text-sm font-mono font-bold ${csColor}`}>
-                                        {match.cs} CS ({csPerMin}/m)
+                                        {cs} CS ({csPerMin}/m)
                                     </div>
                                     <div className={`text-xs font-mono flex items-center justify-end gap-1 ${visionColor}`}>
-                                        <Eye className="w-3 h-3" /> {match.visionScore} ({visionPerMin}/m)
+                                        <Eye className="w-3 h-3" /> {visionScore} ({visionPerMin}/m)
                                     </div>
                                 </>
                             )}
@@ -393,9 +399,10 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
 
                   <div className="space-y-4">
                       {data.topChampions.map((champ) => {
-                          const winRateNum = Number(champ.winRate);
-                          const kdaNum = Number(champ.kda);
-                          const tier = getChampionTier(winRateNum, kdaNum, champ.total);
+                          const winRateNum = champ.winRate ? Number(champ.winRate) : 0;
+                          const kdaNum = champ.kda ? Number(champ.kda) : 0;
+                          const games = champ.total || 0;
+                          const tier = getChampionTier(isNaN(winRateNum) ? 0 : winRateNum, isNaN(kdaNum) ? 0 : kdaNum, games);
                           
                           return (
                               <div key={champ.name} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
@@ -413,20 +420,20 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                                   </div>
                                   <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-center mb-1">
-                                          <p className="font-bold text-sm text-white truncate">{champ.name}</p>
-                                          <p className={`text-xs font-bold ${Number(champ.winRate) >= 50 ? 'text-pedreiro-blue' : 'text-red-400'}`}>
-                                              {champ.winRate}% WR
+                                          <p className="font-bold text-sm text-white truncate">{champ.name || 'Desconhecido'}</p>
+                                          <p className={`text-xs font-bold ${winRateNum >= 50 ? 'text-pedreiro-blue' : 'text-red-400'}`}>
+                                              {isNaN(winRateNum) ? '0' : winRateNum}% WR
                                           </p>
                                       </div>
                                       <div className="flex justify-between text-xs text-gray-400">
-                                          <span>{champ.kda} KDA</span>
-                                          <span>{champ.total} jogos</span>
+                                          <span>{isNaN(kdaNum) ? '0.00' : kdaNum} KDA</span>
+                                          <span>{games} jogos</span>
                                       </div>
                                       
                                       <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                                           <div 
-                                              className={`h-full rounded-full ${Number(champ.winRate) >= 50 ? 'bg-pedreiro-blue' : 'bg-red-500'}`} 
-                                              style={{ width: `${champ.winRate}%` }}
+                                              className={`h-full rounded-full ${winRateNum >= 50 ? 'bg-pedreiro-blue' : 'bg-red-500'}`} 
+                                              style={{ width: `${Math.min(100, Math.max(0, winRateNum))}%` }}
                                           />
                                       </div>
                                   </div>

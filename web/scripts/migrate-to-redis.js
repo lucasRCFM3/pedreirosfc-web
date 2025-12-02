@@ -4,16 +4,34 @@
 const fs = require('fs');
 const path = require('path');
 
+// Carrega variáveis de ambiente do .env.local
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      const value = valueParts.join('=').trim();
+      // Remove aspas do início e fim se houver
+      const cleanValue = value.replace(/^["']|["']$/g, '');
+      if (key && cleanValue) {
+        process.env[key.trim()] = cleanValue;
+      }
+    }
+  });
+}
+
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const CHAMPION_POOL_FILE = path.join(DATA_DIR, 'champion-pool.json');
 const COMPOSITIONS_FILE = path.join(DATA_DIR, 'compositions.json');
 
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const REDIS_URL = (process.env.UPSTASH_REDIS_REST_URL || '').trim();
+const REDIS_TOKEN = (process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
 
 if (!REDIS_URL || !REDIS_TOKEN) {
   console.error('❌ Variáveis de ambiente não configuradas!');
-  console.error('Configure UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN');
+  console.error('Configure UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN no arquivo .env.local');
   process.exit(1);
 }
 

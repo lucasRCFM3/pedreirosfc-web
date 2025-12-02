@@ -162,7 +162,7 @@ export async function getMobalyticsBuild(championName: string, role: string = 't
         for (const name of keystoneNames) {
           const nameMatch = section.match(new RegExp(`<img[^>]*alt=["']${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["'][^>]*class="[^"]*m-1iebrlh[^"]*"`, 'i'));
           if (nameMatch) {
-            keystoneMatch = nameMatch;
+            keystoneMatch = [null, name];
             break;
           }
         }
@@ -177,7 +177,7 @@ export async function getMobalyticsBuild(championName: string, role: string = 't
           let runeName = firstRuneMatch[1].replace(/&#x27;/g, "'").replace(/&amp;/g, '&');
           const ignoreList = ['Resolve', 'Inspiration', 'Precision', 'Domination', 'Sorcery'];
           if (!ignoreList.some(ignore => runeName.toLowerCase() === ignore.toLowerCase())) {
-            keystoneMatch = firstRuneMatch;
+            keystoneMatch = [null, runeName];
           }
         }
       }

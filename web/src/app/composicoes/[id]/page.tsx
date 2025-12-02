@@ -1,6 +1,7 @@
 import { getLatestDDVersion } from "@/lib/riot";
 import { getItemIconUrlByName } from "@/lib/items";
 import { getCompositionById } from "@/lib/compositions";
+import { normalizeChampionName } from "@/lib/champions";
 import { Target, Clock, Trophy, Ban, CheckCircle, AlertCircle, Map, Users, Package, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,7 +60,7 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
     support: 'SUP'
   };
 
-  const championUrl = (name: string) => name.replace(/\s/g, '').replace(/'/g, '');
+  const championUrl = (name: string) => normalizeChampionName(name);
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto min-h-screen">
