@@ -638,7 +638,11 @@ function Section({ title, icon, expanded, onToggle, help, children }: SectionPro
         <div className="flex items-center gap-3">
           {icon}
           <h3 className="text-lg font-bold text-white">{title}</h3>
-          <HelpCircle className="w-4 h-4 text-gray-400" title={help} />
+          {help && (
+            <div title={help} className="cursor-help">
+              <HelpCircle className="w-4 h-4 text-gray-400" />
+            </div>
+          )}
         </div>
         {expanded ? (
           <ChevronUp className="w-5 h-5 text-gray-400" />
