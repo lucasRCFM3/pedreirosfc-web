@@ -2013,7 +2013,7 @@ export const CHAMPION_MEMORY: Record<string, ChampionMemory> = {
     }
   },
   'Diana': {
-    roles: ['jungle'],
+    roles: ['mid', 'jungle'],
     build: {
       items: [
         'Liandry\'s Torment',
