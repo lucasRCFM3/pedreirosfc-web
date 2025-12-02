@@ -1,0 +1,154 @@
+{
+  "Ornn": {
+    "roles": [
+      "top",
+      "jungle"
+    ],
+    "build": {
+      "items": [
+        "Sunfire Aegis",
+        "Plated Steelcaps",
+        "Thornmail",
+        "Jak'Sho, The Protean",
+        "Unending Despair",
+        "Frozen Heart"
+      ],
+      "situationalItems": [
+        "Kaenic Rookern",
+        "Randuin's Omen",
+        "Warmog's Armor",
+        "Heartsteel",
+        "Force of Nature",
+        "Winter's Approach"
+      ],
+      "runes": [],
+      "summoners": [
+        "Flash",
+        "Teleport"
+      ]
+    }
+  },
+  "Sejuani": {
+    "roles": [
+      "top",
+      "jungle"
+    ],
+    "build": {
+      "items": [
+        "Heartsteel",
+        "Plated Steelcaps",
+        "Unending Despair",
+        "Thornmail",
+        "Jak'Sho, The Protean",
+        "Frozen Heart"
+      ],
+      "situationalItems": [
+        "Kaenic Rookern",
+        "Sunfire Aegis",
+        "Randuin's Omen",
+        "Warmog's Armor",
+        "Knight's Vow",
+        "Hollow Radiance"
+      ],
+      "runes": [],
+      "summoners": [
+        "Flash",
+        "Teleport"
+      ]
+    }
+  },
+  "Orianna": {
+    "roles": [],
+    "build": {
+      "items": [
+        "Blackfire Torch",
+        "Sorcerer's Shoes",
+        "Horizon Focus",
+        "Zhonya's Hourglass",
+        "Rabadon's Deathcap",
+        "Void Staff"
+      ],
+      "situationalItems": [
+        "Shadowflame",
+        "Cryptbloom",
+        "Banshee's Veil",
+        "Morellonomicon",
+        "Liandry's Torment",
+        "Stormsurge"
+      ],
+      "runes": [],
+      "summoners": [
+        "Flash",
+        "Teleport"
+      ]
+    }
+  },
+  "Jinx": {
+    "roles": [
+      "adc"
+    ],
+    "build": {
+      "items": [
+        "Yun Tal Wildarrows",
+        "Berserker's Greaves",
+        "Infinity Edge",
+        "Runaan's Hurricane",
+        "Lord Dominik's Regards",
+        "Bloodthirster"
+      ],
+      "situationalItems": [
+        "Mortal Reminder",
+        "Phantom Dancer",
+        "Guardian Angel",
+        "Rapid Firecannon",
+        "Immortal Shieldbow",
+        "Mercurial Scimitar"
+      ],
+      "runes": [
+        "Lethal Tempo",
+        "Presence of Mind",
+        "Legend: Bloodline",
+        "Coup de Grace"
+      ],
+      "summoners": [
+        "Flash",
+        "Teleport"
+      ]
+    }
+  },
+  "Lulu": {
+    "roles": [
+      "support"
+    ],
+    "build": {
+      "items": [
+        "Dream Maker",
+        "Ionian Boots of Lucidity",
+        "Ardent Censer",
+        "Moonstone Renewer",
+        "Redemption",
+        "Vigilant Wardstone"
+      ],
+      "situationalItems": [
+        "Shurelya's Battlesong",
+        "Mikael's Blessing",
+        "Locket of the Iron Solari",
+        "Staff of Flowing Water",
+        "Dawncore",
+        "Morellonomicon"
+      ],
+      "runes": [
+        "Bone Plating",
+        "Revitalize",
+        "Manaflow Band",
+        "Transcendence",
+        "Scorch",
+        "Summon Aery"
+      ],
+      "summoners": [
+        "Flash",
+        "Teleport"
+      ]
+    }
+  }
+}
