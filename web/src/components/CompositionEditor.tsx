@@ -5,8 +5,7 @@ import { Composition, CompositionChampion, WinCondition } from "@/config/composi
 import { ChampionData, normalizeChampionName } from "@/lib/champions";
 import { 
   ChevronDown, ChevronUp, Plus, X, Save, Info, HelpCircle, 
-  Users, Target, Trophy, Ban, CheckCircle, AlertCircle, 
-  Clock, Package, Map
+  Users, Target, Trophy, Ban, Package
 } from "lucide-react";
 import Image from "next/image";
 
@@ -41,10 +40,6 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
     champions: true,
     winConditions: false,
     draft: false,
-    inGame: false,
-    earlyGame: false,
-    midGame: false,
-    lateGame: false,
     synergies: false
   });
 
@@ -357,7 +352,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
               icon={<Target className="w-5 h-5" />}
               expanded={expandedSections.draft}
               onToggle={() => toggleSection('draft')}
-              help="Configure bans, picks e notas para a fase de draft"
+              help="Configure bans para a fase de draft"
             >
               <div className="space-y-4">
                 <div>
@@ -374,194 +369,6 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                     help="Lista de campeões ou estratégias de ban recomendadas"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-white mb-2 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    Picks Recomendados
-                  </label>
-                  <ListEditor
-                    items={editedComp.draft.picks}
-                    onAdd={() => addDraftItem('picks')}
-                    onRemove={(i) => removeDraftItem('picks', i)}
-                    onUpdate={(i, v) => updateDraftItem('picks', i, v)}
-                    placeholder="Ex: Orianna (Mid): Blind Pick seguro"
-                    help="Ordem e estratégia de picks recomendadas"
-                  />
-                </div>
-                <EditableField
-                  label="Notas do Draft"
-                  value={editedComp.draft.notes}
-                  onChange={(v) => updateField(['draft', 'notes'], v)}
-                  placeholder="Notas adicionais sobre a fase de draft"
-                  textarea
-                  rows={3}
-                />
-              </div>
-            </Section>
-
-            {/* In-Game */}
-            <Section
-              title="Estratégias In-Game"
-              icon={<Map className="w-5 h-5" />}
-              expanded={expandedSections.inGame}
-              onToggle={() => toggleSection('inGame')}
-              help="Macro, rotações e controle de visão durante o jogo"
-            >
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-green-400 mb-2">Macro</label>
-                  <ListEditor
-                    items={editedComp.inGame?.macro || []}
-                    onAdd={() => addInGameItem('macro')}
-                    onRemove={(i) => removeInGameItem('macro', i)}
-                    onUpdate={(i, v) => updateInGameItem('macro', i, v)}
-                    placeholder="Ex: Prioridade de Rotação: Dragão > Torres"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-blue-400 mb-2">Rotações</label>
-                  <ListEditor
-                    items={editedComp.inGame?.rotations || []}
-                    onAdd={() => addInGameItem('rotations')}
-                    onRemove={(i) => removeInGameItem('rotations', i)}
-                    onUpdate={(i, v) => updateInGameItem('rotations', i, v)}
-                    placeholder="Ex: Quando inverter Top/Bot: Após T1 bot cair"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-purple-400 mb-2">Visão</label>
-                  <ListEditor
-                    items={editedComp.inGame?.vision || []}
-                    onAdd={() => addInGameItem('vision')}
-                    onRemove={(i) => removeInGameItem('vision', i)}
-                    onUpdate={(i, v) => updateInGameItem('vision', i, v)}
-                    placeholder="Ex: Prioridade: Área de dragão/barão"
-                  />
-                </div>
-              </div>
-            </Section>
-
-            {/* Early Game */}
-            <Section
-              title="Early Game (0:00 - 15:00)"
-              icon={<Clock className="w-5 h-5" />}
-              expanded={expandedSections.earlyGame}
-              onToggle={() => toggleSection('earlyGame')}
-              help="Estratégias e foco para cada role no início do jogo"
-            >
-              <div className="space-y-4">
-                {editedComp.champions.map((champ) => {
-                  const roleKey = `${champ.name} & ${editedComp.champions.find(c => c.role === 'support' && champ.role === 'adc')?.name || 'Support'}`;
-                  const earlyGameKey = Object.keys(editedComp.earlyGame).find(key => 
-                    key.includes(champ.name) || key.includes(ROLE_LABELS[champ.role])
-                  ) || champ.role;
-                  
-                  const earlyData = editedComp.earlyGame[earlyGameKey] || { focus: "", dontDo: "" };
-                  
-                  return (
-                    <div key={champ.role} className={`bg-white/5 rounded-lg p-4 border-2 ${ROLE_COLORS[champ.role]}`}>
-                      <h4 className="font-bold text-white mb-3">{champ.name} ({ROLE_LABELS[champ.role]})</h4>
-                      <div className="space-y-3">
-                        <EditableField
-                          label="Foco"
-                          value={earlyData.focus}
-                          onChange={(v) => updateEarlyGame(earlyGameKey, 'focus', v)}
-                          placeholder="O que este campeão deve focar no early game"
-                          textarea
-                          rows={2}
-                        />
-                        <EditableField
-                          label="Não Fazer"
-                          value={earlyData.dontDo}
-                          onChange={(v) => updateEarlyGame(earlyGameKey, 'dontDo', v)}
-                          placeholder="O que este campeão NÃO deve fazer"
-                          textarea
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-
-            {/* Mid Game */}
-            <Section
-              title="Mid Game (15:00 - 25:00)"
-              icon={<Clock className="w-5 h-5" />}
-              expanded={expandedSections.midGame}
-              onToggle={() => toggleSection('midGame')}
-              help="Objetivos, prioridades e estratégias de teamfight no meio do jogo"
-            >
-              <div className="space-y-4">
-                <EditableField
-                  label="Objetivos"
-                  value={editedComp.midGame.objectives}
-                  onChange={(v) => updateField(['midGame', 'objectives'], v)}
-                  placeholder="Ex: Focar no Dragão da Alma e nas Torres Externas"
-                  textarea
-                  rows={2}
-                />
-                <EditableField
-                  label="Prioridade"
-                  value={editedComp.midGame.priority}
-                  onChange={(v) => updateField(['midGame', 'priority'], v)}
-                  placeholder="O que deve ser priorizado nesta fase"
-                  textarea
-                  rows={2}
-                />
-                <EditableField
-                  label="Primeira Teamfight"
-                  value={editedComp.midGame.teamfight}
-                  onChange={(v) => updateField(['midGame', 'teamfight'], v)}
-                  placeholder="Como executar a primeira teamfight"
-                  textarea
-                  rows={4}
-                />
-              </div>
-            </Section>
-
-            {/* Late Game */}
-            <Section
-              title="Late Game (25:00+)"
-              icon={<Trophy className="w-5 h-5" />}
-              expanded={expandedSections.lateGame}
-              onToggle={() => toggleSection('lateGame')}
-              help="Execução final e estratégias para vencer no late game"
-            >
-              <div className="space-y-4">
-                <EditableField
-                  label="Foco Total"
-                  value={editedComp.lateGame.focus}
-                  onChange={(v) => updateField(['lateGame', 'focus'], v)}
-                  placeholder="Ex: Barão ou Dragão Ancião"
-                  textarea
-                  rows={2}
-                />
-                <EditableField
-                  label="Papel do Carry Principal"
-                  value={editedComp.lateGame.jinxRole}
-                  onChange={(v) => updateField(['lateGame', 'jinxRole'], v)}
-                  placeholder="Como o carry principal deve jogar no late game"
-                  textarea
-                  rows={4}
-                />
-                <EditableField
-                  label="Execução da Luta"
-                  value={editedComp.lateGame.execution}
-                  onChange={(v) => updateField(['lateGame', 'execution'], v)}
-                  placeholder="Como executar as teamfights decisivas"
-                  textarea
-                  rows={4}
-                />
-                <EditableField
-                  label="Se o Carry Principal Cair"
-                  value={editedComp.lateGame.ifJinxDies}
-                  onChange={(v) => updateField(['lateGame', 'ifJinxDies'], v)}
-                  placeholder="O que fazer se o carry principal morrer"
-                  textarea
-                  rows={3}
-                />
               </div>
             </Section>
 
