@@ -226,8 +226,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       
       // Coleta todos os campeões únicos de ambas as versões
       const allChampions = new Set<string>();
-      Object.values(localRole).forEach((tier: string[]) => tier.forEach(champ => allChampions.add(champ)));
-      Object.values(serverRole).forEach((tier: string[]) => tier.forEach(champ => allChampions.add(champ)));
+      (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
+      (Object.values(serverRole) as string[][]).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
       
       // Para cada campeão, decide qual versão usar
       allChampions.forEach(champion => {
