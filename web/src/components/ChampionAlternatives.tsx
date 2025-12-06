@@ -3,7 +3,6 @@
 import { CompositionChampion } from "@/config/compositions";
 import { normalizeChampionName } from "@/lib/champions";
 import Image from "next/image";
-import { useState } from "react";
 
 interface ChampionAlternativesProps {
   champion: CompositionChampion;
@@ -13,14 +12,12 @@ interface ChampionAlternativesProps {
 }
 
 export function ChampionAlternatives({ champion, version, roleColor, roleLabel }: ChampionAlternativesProps) {
-  const [showAlternatives, setShowAlternatives] = useState(false);
   const championUrl = (name: string) => normalizeChampionName(name);
+  const hasAlternatives = champion.alternatives && champion.alternatives.length > 0;
 
   return (
     <div
       className={`bg-white/5 rounded-2xl p-4 border-2 ${roleColor} hover:bg-white/10 transition-all relative group`}
-      onMouseEnter={() => setShowAlternatives(true)}
-      onMouseLeave={() => setShowAlternatives(false)}
     >
       <div className="flex flex-col items-center text-center mb-3">
         <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/20 mb-3">
@@ -35,30 +32,28 @@ export function ChampionAlternatives({ champion, version, roleColor, roleLabel }
         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{roleLabel}</p>
         <p className="text-xs text-pedreiro-blue font-semibold">{champion.type}</p>
       </div>
-      <div className="border-t border-white/10 pt-3">
+      <div className="border-t border-white/10 pt-3 mb-3">
         <p className="text-xs text-gray-300 leading-relaxed">{champion.function}</p>
       </div>
 
-      {/* Alternatives Tooltip */}
-      {champion.alternatives && champion.alternatives.length > 0 && showAlternatives && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-xl border border-white/10 backdrop-blur-sm z-50 pointer-events-none">
-          <p className="font-bold text-white text-sm mb-3">Alternativas:</p>
-          <div className="space-y-2">
+      {/* Alternatives - Sempre visível */}
+      {hasAlternatives && (
+        <div className="border-t border-white/10 pt-3">
+          <p className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Alternativas:</p>
+          <div className="flex flex-wrap gap-2 justify-center">
             {champion.alternatives.map((alt, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/20 flex-shrink-0">
+              <div key={idx} className="relative group/alt" title={alt}>
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/20 hover:border-pedreiro-blue transition-colors">
                   <Image
                     src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championUrl(alt)}.png`}
                     alt={alt}
                     fill
-                    className="object-cover"
+                    className="object-cover opacity-80 group-hover/alt:opacity-100 transition-opacity"
                   />
                 </div>
-                <span className="text-gray-300">{alt}</span>
               </div>
             ))}
           </div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900" />
         </div>
       )}
     </div>
