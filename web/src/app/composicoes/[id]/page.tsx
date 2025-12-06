@@ -1,7 +1,7 @@
 import { getLatestDDVersion } from "@/lib/riot";
 import { getItemIconUrlByName } from "@/lib/items";
 import { getCompositionById } from "@/lib/compositions";
-import { normalizeChampionName } from "@/lib/champions";
+import { normalizeChampionName, getAllChampions } from "@/lib/champions";
 import { Target, Trophy, Ban, Users, Package, ArrowLeft, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +12,7 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
   const params = await props.params;
   const version = await getLatestDDVersion();
   const composition = await getCompositionById(params.id);
+  const allChampions = await getAllChampions(version);
 
   if (!composition) {
     return notFound();
@@ -176,7 +177,41 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
                 'Jungle', 'Flex', 'ADC', 'Top', 'Mid', 'Support', 'Sup', 'Com', 'Disengage', 'Assassinos'
               ]);
               
+              // Função auxiliar para verificar se uma palavra é um campeão válido
+              const isValidChampion = (name: string): boolean => {
+                if (!name || name.length < 3 || name.length > 20) return false;
+                if (commonWords.has(name)) return false;
+                
+                // Verifica se existe na lista de campeões
+                if (allChampions) {
+                  return allChampions.some(champ => {
+                    const champName = champ.name;
+                    const normalizedChamp = normalizeChampionName(champName);
+                    const normalizedInput = name.replace(/\s/g, '').replace(/'/g, '');
+                    
+                    return champName === name || 
+                           normalizedChamp === normalizedInput ||
+                           champName.toLowerCase() === name.toLowerCase() ||
+                           normalizedChamp.toLowerCase() === normalizedInput.toLowerCase();
+                  });
+                }
+                
+                // Se não temos a lista, usa heurística: começa com maiúscula e tem tamanho razoável
+                return /^[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?$/.test(name);
+              };
+              
               composition.draft.bans.filter(ban => ban && ban.trim()).forEach(ban => {
+                // Padrão 0: Texto inteiro é apenas um nome de campeão "Pantheon"
+                const trimmedBan = ban.trim();
+                if (isValidChampion(trimmedBan) && 
+                    !trimmedBan.includes('(') && 
+                    !trimmedBan.includes(':') && 
+                    !trimmedBan.includes(',') &&
+                    !trimmedBan.includes('ou') &&
+                    !championNames.includes(trimmedBan)) {
+                  championNames.push(trimmedBan);
+                }
+                
                 // Padrão 1: Nomes antes de parênteses "Pantheon (Jungle/Flex)"
                 const beforeParen = ban.match(/([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s*\(/g);
                 if (beforeParen) {
