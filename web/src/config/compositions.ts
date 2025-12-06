@@ -20,12 +20,19 @@ export interface WinCondition {
   details: string;
 }
 
+export interface WeakPoint {
+  id: number;
+  title: string;
+  details: string;
+}
+
 export interface Composition {
   id: string;
   title: string;
   objective: string;
   champions: CompositionChampion[];
   winConditions: WinCondition[];
+  weakPoints: WeakPoint[];
   draft: {
     bans: string[];
     picks: string[];
@@ -131,6 +138,8 @@ export const COMPOSITIONS: Composition[] = [
         title: 'Chegar ao Late Game',
         details: 'A Jinx precisa de 3+ itens (ex: Kraken Slayer, Infinity Edge, Lord Dominik\'s) e a Orianna precisa de 2+ itens. Evite lutas arriscadas no Early/Mid Game (antes dos 20 minutos).'
       },
+    ],
+    weakPoints: [],
       {
         id: 2,
         title: '"The Jinx Reset"',
@@ -284,6 +293,8 @@ export const COMPOSITIONS: Composition[] = [
         title: 'Evoluções da Kaisa',
         details: 'Kaisa deve evoluir Q (Icathian Rain) e E (Supercharge) o mais rápido possível. Q evolui com 100 AD, E evolui com 100% Attack Speed. Priorizar farm e participação em kills para acelerar as evoluções.'
       },
+    ],
+    weakPoints: [],
       {
         id: 2,
         title: 'Pick-offs Coordenados',

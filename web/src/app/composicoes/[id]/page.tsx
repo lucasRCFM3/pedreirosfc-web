@@ -2,7 +2,7 @@ import { getLatestDDVersion } from "@/lib/riot";
 import { getItemIconUrlByName } from "@/lib/items";
 import { getCompositionById } from "@/lib/compositions";
 import { normalizeChampionName } from "@/lib/champions";
-import { Target, Trophy, Ban, Users, Package, ArrowLeft } from "lucide-react";
+import { Target, Trophy, Ban, Users, Package, ArrowLeft, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -115,6 +115,31 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
                   <div className="flex-1">
                     <p className="font-bold text-white mb-1">{condition.title}</p>
                     <p className="text-sm text-gray-300 leading-relaxed">{condition.details}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        )}
+
+        {/* Weak Points */}
+        {composition.weakPoints && composition.weakPoints.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <h3 className="text-xl font-bold text-white">Pontos Fracos</h3>
+          </div>
+          <div className="space-y-3">
+            {composition.weakPoints.map((weakPoint) => (
+              <div key={weakPoint.id} className="bg-white/5 rounded-xl p-4 border border-red-500/20">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <span className="text-red-500 font-bold text-sm">{weakPoint.id}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white mb-1">{weakPoint.title}</p>
+                    <p className="text-sm text-gray-300 leading-relaxed">{weakPoint.details}</p>
                   </div>
                 </div>
               </div>

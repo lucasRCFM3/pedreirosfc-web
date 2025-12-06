@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Composition, CompositionChampion, WinCondition } from "@/config/compositions";
+import { Composition, CompositionChampion, WinCondition, WeakPoint } from "@/config/compositions";
 import { ChampionData, normalizeChampionName } from "@/lib/champions";
 import { 
   ChevronDown, ChevronUp, Plus, X, Save, Info, HelpCircle, 
-  Users, Target, Trophy, Ban, Package
+  Users, Target, Trophy, Ban, Package, AlertCircle
 } from "lucide-react";
 import Image from "next/image";
 
@@ -34,11 +34,17 @@ interface CompositionEditorProps {
 }
 
 export function CompositionEditor({ composition, version, allChampions, onSave, onCancel }: CompositionEditorProps) {
-  const [editedComp, setEditedComp] = useState<Composition>(JSON.parse(JSON.stringify(composition)));
+  const initialComp = JSON.parse(JSON.stringify(composition));
+  // Garante que weakPoints existe para compatibilidade com dados antigos
+  if (!initialComp.weakPoints) {
+    initialComp.weakPoints = [];
+  }
+  const [editedComp, setEditedComp] = useState<Composition>(initialComp);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     basic: true,
     champions: true,
     winConditions: false,
+    weakPoints: false,
     draft: false,
     synergies: false
   });
@@ -93,6 +99,33 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
       ...prev,
       winConditions: prev.winConditions.map(wc => 
         wc.id === id ? { ...wc, [field]: value } : wc
+      )
+    }));
+  };
+
+  const addWeakPoint = () => {
+    const newId = editedComp.weakPoints.length > 0
+      ? Math.max(...editedComp.weakPoints.map(wp => wp.id)) + 1
+      : 1;
+    
+    setEditedComp(prev => ({
+      ...prev,
+      weakPoints: [...(prev.weakPoints || []), { id: newId, title: "", details: "" }]
+    }));
+  };
+
+  const removeWeakPoint = (id: number) => {
+    setEditedComp(prev => ({
+      ...prev,
+      weakPoints: (prev.weakPoints || []).filter(wp => wp.id !== id)
+    }));
+  };
+
+  const updateWeakPoint = (id: number, field: 'title' | 'details', value: string) => {
+    setEditedComp(prev => ({
+      ...prev,
+      weakPoints: (prev.weakPoints || []).map(wp => 
+        wp.id === id ? { ...wp, [field]: value } : wp
       )
     }));
   };
@@ -342,6 +375,53 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Condição de Vitória
+                </button>
+              </div>
+            </Section>
+
+            {/* Weak Points */}
+            <Section
+              title="Pontos Fracos"
+              icon={<AlertCircle className="w-5 h-5" />}
+              expanded={expandedSections.weakPoints}
+              onToggle={() => toggleSection('weakPoints')}
+              help="Defina os pontos fracos e vulnerabilidades desta composição"
+            >
+              <div className="space-y-3">
+                {(editedComp.weakPoints || []).map((wp) => (
+                  <div key={wp.id} className="bg-white/5 rounded-lg p-4 border border-red-500/20">
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-sm font-bold text-red-500">#{wp.id}</span>
+                      <button
+                        onClick={() => removeWeakPoint(wp.id)}
+                        className="p-1 hover:bg-red-500/20 rounded text-red-400 transition-colors"
+                        title="Remover"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <EditableField
+                      label="Título"
+                      value={wp.title}
+                      onChange={(v) => updateWeakPoint(wp.id, 'title', v)}
+                      placeholder="Ex: Vulnerável a Assassinos"
+                    />
+                    <EditableField
+                      label="Detalhes"
+                      value={wp.details}
+                      onChange={(v) => updateWeakPoint(wp.id, 'details', v)}
+                      placeholder="Descreva os detalhes deste ponto fraco"
+                      textarea
+                      rows={2}
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={addWeakPoint}
+                  className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-white hover:border-red-500 hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Ponto Fraco
                 </button>
               </div>
             </Section>

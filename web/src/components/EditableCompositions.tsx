@@ -162,6 +162,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
         { name: "Thresh", role: "support", type: "", function: "", description: "" },
       ],
       winConditions: [],
+      weakPoints: [],
       draft: {
         bans: [],
         picks: [],
