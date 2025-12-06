@@ -599,7 +599,7 @@ interface ListEditorProps {
 }
 
 // Função para extrair nomes de campeões de um texto de ban
-function extractChampionNames(banText: string): string[] {
+function extractChampionNames(banText: string, allChampions?: ChampionData[]): string[] {
   const championNames: string[] = [];
   
   // Lista de palavras comuns e roles para filtrar
@@ -612,12 +612,41 @@ function extractChampionNames(banText: string): string[] {
     'Jungle', 'Flex', 'ADC', 'Top', 'Mid', 'Support', 'Sup', 'Com', 'Disengage', 'Assassinos'
   ]);
   
+  // Função auxiliar para verificar se uma palavra é um campeão válido
+  const isValidChampion = (name: string): boolean => {
+    if (!name || name.length < 3 || name.length > 20) return false;
+    if (commonWords.has(name)) return false;
+    
+    // Se temos a lista de campeões, verifica se existe
+    if (allChampions) {
+      return allChampions.some(champ => {
+        const champName = champ.name;
+        const normalizedChamp = normalizeChampionName(champName);
+        const normalizedInput = name.replace(/\s/g, '').replace(/'/g, '');
+        
+        return champName === name || 
+               normalizedChamp === normalizedInput ||
+               champName.toLowerCase() === name.toLowerCase() ||
+               normalizedChamp.toLowerCase() === normalizedInput.toLowerCase();
+      });
+    }
+    
+    // Se não temos a lista, usa heurística: começa com maiúscula e tem tamanho razoável
+    return /^[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?$/.test(name);
+  };
+  
+  // Padrão 0: Texto inteiro é apenas um nome de campeão "Pantheon"
+  const trimmedText = banText.trim();
+  if (isValidChampion(trimmedText) && !trimmedText.includes('(') && !trimmedText.includes(':') && !trimmedText.includes(',')) {
+    championNames.push(trimmedText);
+  }
+  
   // Padrão 1: Nomes antes de parênteses "Pantheon (Jungle/Flex)"
   const beforeParen = banText.match(/([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s*\(/g);
   if (beforeParen) {
     beforeParen.forEach(match => {
       const name = match.replace(/\s*\(.*$/, '').trim();
-      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+      if (isValidChampion(name) && !championNames.includes(name)) {
         championNames.push(name);
       }
     });
@@ -629,7 +658,7 @@ function extractChampionNames(banText: string): string[] {
     afterColon.forEach(match => {
       const name = match.replace(/^:\s+/, '').trim();
       const firstWord = name.split(/\s|,/)[0];
-      if (firstWord && !commonWords.has(firstWord) && firstWord.length >= 3 && firstWord.length <= 15 && !championNames.includes(firstWord)) {
+      if (isValidChampion(firstWord) && !championNames.includes(firstWord)) {
         championNames.push(firstWord);
       }
     });
@@ -640,7 +669,7 @@ function extractChampionNames(banText: string): string[] {
   if (afterOr) {
     afterOr.forEach(match => {
       const name = match.replace(/^ou\s+/, '').trim();
-      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+      if (isValidChampion(name) && !championNames.includes(name)) {
         championNames.push(name);
       }
     });
@@ -651,7 +680,7 @@ function extractChampionNames(banText: string): string[] {
   if (commaSeparated) {
     commaSeparated.forEach(match => {
       const name = match.replace(/\s*,.*$/, '').trim();
-      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+      if (isValidChampion(name) && !championNames.includes(name)) {
         championNames.push(name);
       }
     });
@@ -662,10 +691,20 @@ function extractChampionNames(banText: string): string[] {
   if (lastInList) {
     lastInList.forEach(match => {
       const name = match.replace(/^,\s+/, '').replace(/[.\s].*$/, '').trim();
-      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+      if (isValidChampion(name) && !championNames.includes(name)) {
         championNames.push(name);
       }
     });
+  }
+  
+  // Padrão 6: Primeira palavra do texto se for um campeão válido (para casos como "Pantheon é forte")
+  const firstWord = trimmedText.split(/\s+/)[0];
+  if (firstWord && isValidChampion(firstWord) && !championNames.includes(firstWord) && 
+      !trimmedText.includes('(') && !trimmedText.includes(':')) {
+    // Só adiciona se não foi adicionado pelo padrão 0
+    if (!championNames.includes(trimmedText)) {
+      championNames.push(firstWord);
+    }
   }
   
   return championNames;
@@ -674,7 +713,7 @@ function extractChampionNames(banText: string): string[] {
 function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help, showChampionIcons, version, allChampions }: ListEditorProps) {
   // Extrai todos os nomes de campeões de todos os items
   const allChampionNames = showChampionIcons && version && allChampions
-    ? Array.from(new Set(items.flatMap(item => extractChampionNames(item))))
+    ? Array.from(new Set(items.flatMap(item => extractChampionNames(item, allChampions))))
     : [];
 
   return (
