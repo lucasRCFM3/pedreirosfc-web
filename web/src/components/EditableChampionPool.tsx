@@ -235,11 +235,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         let localTier: Tier | null = null;
         let serverTier: Tier | null = null;
         
-        Object.entries(localRole).forEach(([tier, champs]) => {
+        (Object.entries(localRole) as [string, string[]][]).forEach(([tier, champs]) => {
           if (champs.includes(champion)) localTier = tier as Tier;
         });
         
-        Object.entries(serverRole).forEach(([tier, champs]) => {
+        (Object.entries(serverRole) as [string, string[]][]).forEach(([tier, champs]) => {
           if (champs.includes(champion)) serverTier = tier as Tier;
         });
         
