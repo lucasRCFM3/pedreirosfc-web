@@ -23,7 +23,7 @@ export function ChampionAlternatives({ champion, version, roleColor, roleLabel }
       onMouseLeave={() => setShowAlternatives(false)}
     >
       <div className="flex flex-col items-center text-center mb-2 md:mb-3">
-        <div className="relative w-12 h-12 md:w-16 md:h-20 rounded-full overflow-hidden border-2 border-white/20 mb-2 md:mb-3">
+        <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white/20 mb-2 md:mb-3">
           <Image
             src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championUrl(champion.name)}.png`}
             alt={champion.name}

@@ -112,8 +112,8 @@ function getChampionTier(winRate: number, kda: number, games: number): { tier: s
 
 type FilterType = 'all' | 'solo' | 'flex';
 
-// Revalida a página a cada 5 minutos automaticamente
-export const revalidate = 300;
+// Revalida a página a cada 15 minutos automaticamente (reduz requisições à API)
+export const revalidate = 900;
 
 export default async function RolePage(props: { params: Promise<{ roleName: string }>; searchParams: Promise<{ filter?: string }> }) {
   const params = await props.params;

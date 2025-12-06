@@ -66,8 +66,8 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
   const url = `https://${REGION_AMERICAS}/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`;
   
   try {
-    // Cache de 5 minutos - atualiza automaticamente
-    const res = await fetch(url, { headers, next: { revalidate: 300 } });
+    // Cache de 15 minutos - reduz requisições à API
+    const res = await fetch(url, { headers, next: { revalidate: 900 } });
     if (!res.ok) {
         console.error(`[API] Account not found: ${gameName}#${tagLine} (${res.status})`);
         return null;
@@ -89,8 +89,8 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
   }
   
   try {
-    // Cache de 5 minutos - atualiza automaticamente
-    const res = await fetch(url, { headers, next: { revalidate: 300 } });
+    // Cache de 15 minutos - reduz requisições à API
+    const res = await fetch(url, { headers, next: { revalidate: 900 } });
     if (!res.ok) return [];
     return await res.json();
   } catch (error) {
