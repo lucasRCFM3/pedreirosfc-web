@@ -212,18 +212,32 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     serverData: Record<string, Record<Tier, string[]>>,
     serverTimestamp: number
   ): Record<string, Record<Tier, string[]>> => {
+    // Começa com uma cópia dos dados locais
     const merged = JSON.parse(JSON.stringify(localData));
     
-    // Para cada role
+    // Garante que todas as roles do servidor existem no merged
     Object.keys(serverData).forEach(role => {
       if (!merged[role]) {
         merged[role] = { splus: [], s: [], a: [], b: [], c: [] };
       }
-      
+    });
+    
+    // Para cada role, faz merge inteligente
+    Object.keys(serverData).forEach(role => {
       const localRole = merged[role];
       const serverRole = serverData[role];
       const roleTimestamps = championTimestamps.current[role] || {};
       
+      // Verifica se há alterações locais nesta role
+      const hasLocalChangesInRole = Object.keys(roleTimestamps).length > 0;
+      
+      // Se não há alterações locais nesta role, usa diretamente os dados do servidor
+      if (!hasLocalChangesInRole) {
+        merged[role] = JSON.parse(JSON.stringify(serverRole));
+        return;
+      }
+      
+      // Se há alterações locais, faz merge campeão por campeão
       // Coleta todos os campeões únicos de ambas as versões
       const allChampions = new Set<string>();
       (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
