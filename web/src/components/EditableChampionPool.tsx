@@ -109,7 +109,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const [draggedChampion, setDraggedChampion] = useState<{ name: string; fromTier?: Tier } | null>(null);
   const [selectedChampion, setSelectedChampion] = useState<string | null>(null); // Para mobile: campeão selecionado
   const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number; champion: string; tier: Tier } | null>(null);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [poolData, setPoolData] = useState<Record<string, Record<Tier, string[]>>>(createDefaultData);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,6 +128,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const isUserInteractingRef = useRef(false);
   const lastInteractionTimeRef = useRef<number>(0);
   const lastSaveTimeRef = useRef<number>(0); // Timestamp do último save bem-sucedido
+  // Rastreia quando cada campeão foi movido (para merge inteligente)
+  const championTimestamps = useRef<Record<string, Record<string, number>>>({}); // { role: { champion: timestamp } }
 
   // Carrega dados da API
   const loadFromServer = useCallback(async () => {
@@ -204,16 +206,87 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     }
   }, []);
 
+  // Função para fazer merge inteligente de dados (preserva alterações independentes)
+  const mergePoolData = (
+    localData: Record<string, Record<Tier, string[]>>,
+    serverData: Record<string, Record<Tier, string[]>>,
+    serverTimestamp: number
+  ): Record<string, Record<Tier, string[]>> => {
+    const merged = JSON.parse(JSON.stringify(localData));
+    
+    // Para cada role
+    Object.keys(serverData).forEach(role => {
+      if (!merged[role]) {
+        merged[role] = { splus: [], s: [], a: [], b: [], c: [] };
+      }
+      
+      const localRole = merged[role];
+      const serverRole = serverData[role];
+      const roleTimestamps = championTimestamps.current[role] || {};
+      
+      // Coleta todos os campeões únicos de ambas as versões
+      const allChampions = new Set<string>();
+      Object.values(localRole).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
+      Object.values(serverRole).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
+      
+      // Para cada campeão, decide qual versão usar
+      allChampions.forEach(champion => {
+        // Encontra onde está no local e no servidor
+        let localTier: Tier | null = null;
+        let serverTier: Tier | null = null;
+        
+        Object.entries(localRole).forEach(([tier, champs]) => {
+          if (champs.includes(champion)) localTier = tier as Tier;
+        });
+        
+        Object.entries(serverRole).forEach(([tier, champs]) => {
+          if (champs.includes(champion)) serverTier = tier as Tier;
+        });
+        
+        // Se o campeão foi alterado localmente recentemente, usa a versão local
+        const localTimestamp = roleTimestamps[champion] || 0;
+        
+        // Se temos timestamp local e é mais recente que o servidor, mantém local
+        // Caso contrário, usa a versão do servidor
+        if (localTimestamp > serverTimestamp && localTier !== null) {
+          // Mantém versão local - remove de outras tiers e adiciona na tier local
+          Object.keys(localRole).forEach(tier => {
+            const tierArray = localRole[tier as Tier];
+            if (Array.isArray(tierArray)) {
+              localRole[tier as Tier] = tierArray.filter(c => c !== champion);
+            }
+          });
+          if (localTier && !localRole[localTier].includes(champion)) {
+            localRole[localTier].push(champion);
+          }
+        } else if (serverTier !== null) {
+          // Usa versão do servidor - remove de todas as tiers e adiciona na tier do servidor
+          Object.keys(localRole).forEach(tier => {
+            const tierArray = localRole[tier as Tier];
+            if (Array.isArray(tierArray)) {
+              localRole[tier as Tier] = tierArray.filter(c => c !== champion);
+            }
+          });
+          if (serverTier && !localRole[serverTier].includes(champion)) {
+            localRole[serverTier].push(champion);
+          }
+        }
+      });
+    });
+    
+    return merged;
+  };
+
   // Verifica se há atualizações no servidor
   const checkForUpdates = useCallback(async () => {
     const now = Date.now();
-    // Não atualiza se estiver salvando, tiver mudanças locais, ou usuário interagindo recentemente
+    // Não atualiza se estiver salvando ou usuário interagindo AGORA
     const timeSinceLastInteraction = now - lastInteractionTimeRef.current;
     const timeSinceLastSave = now - lastSaveTimeRef.current;
-    const recentlyInteracted = timeSinceLastInteraction < 10000; // 10 segundos após última interação
-    const recentlySaved = timeSinceLastSave < 5000; // 5 segundos após salvar (proteção contra rollback)
+    const currentlyInteracting = timeSinceLastInteraction < 2000; // 2 segundos após última interação
+    const justSaved = timeSinceLastSave < 1000; // 1 segundo após salvar (proteção mínima)
     
-    if (isSavingRef.current || hasLocalChanges.current || isLoading || isUserInteractingRef.current || recentlyInteracted || recentlySaved) {
+    if (isSavingRef.current || isLoading || isUserInteractingRef.current || currentlyInteracting || justSaved) {
       return;
     }
 
@@ -224,20 +297,23 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       const result = await response.json();
       const serverModified = result.lastModified || null;
 
-      // Se o servidor tem uma versão mais nova e não temos mudanças locais, atualiza
+      // Se o servidor tem uma versão diferente, faz merge
       if (serverModified && serverModified !== lastKnownModified.current) {
         // Verifica novamente antes de atualizar (race condition)
-        // Dupla verificação para garantir que não sobrescrevemos após salvar
         const finalTimeSinceLastSave = Date.now() - lastSaveTimeRef.current;
-        const finalRecentlySaved = finalTimeSinceLastSave < 5000;
+        const finalJustSaved = finalTimeSinceLastSave < 1000;
         
-        if (!hasLocalChanges.current && !isUserInteractingRef.current && !finalRecentlySaved) {
+        if (!isUserInteractingRef.current && !finalJustSaved) {
           setPoolData(prevData => {
-            // Garante que não sobrescreve se houver mudanças locais agora
-            if (!hasLocalChanges.current) {
+            // Se temos mudanças locais não salvas, faz merge inteligente
+            if (hasLocalChanges.current) {
+              const serverTimestamp = new Date(serverModified).getTime();
+              const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
+              return merged;
+            } else {
+              // Se não temos mudanças locais, usa dados do servidor
               return normalizePoolData(result.data);
             }
-            return prevData;
           });
           
           setLastModified(serverModified);
@@ -267,13 +343,13 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     loadFromServer();
   }, [loadFromServer]);
 
-  // Sincronização periódica (a cada 5 segundos - menos frequente para evitar piscar e rollbacks)
+  // Sincronização periódica (a cada 2 segundos - mais rápido para sincronização em tempo real)
   useEffect(() => {
     if (isLoading) return;
     
     syncIntervalRef.current = setInterval(() => {
       checkForUpdates();
-    }, 5000); // Aumentado de 3s para 5s para reduzir rollbacks
+    }, 2000); // Reduzido para 2s para sincronização mais rápida
 
     return () => {
       if (syncIntervalRef.current) {
@@ -295,12 +371,12 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     hasLocalChanges.current = true;
     setIsSynced(false);
 
-    // Debounce maior: salva após 1.5 segundos sem mudanças (aumentado de 1s)
+    // Debounce: salva após 1 segundo sem mudanças (balanceado entre responsividade e performance)
     saveTimeoutRef.current = setTimeout(() => {
       if (!isSavingRef.current) {
         saveToServer(poolData);
       }
-    }, 1500);
+    }, 1000);
 
     return () => {
       if (saveTimeoutRef.current) {
@@ -376,8 +452,15 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   // Função para mover campeão entre tiers
   const moveChampion = (championName: string, targetTier: Tier) => {
     // Marca interação do usuário
+    const now = Date.now();
     isUserInteractingRef.current = true;
-    lastInteractionTimeRef.current = Date.now();
+    lastInteractionTimeRef.current = now;
+    
+    // Rastreia timestamp desta alteração
+    if (!championTimestamps.current[activeRole]) {
+      championTimestamps.current[activeRole] = {};
+    }
+    championTimestamps.current[activeRole][championName] = now;
     
     // Marca que temos mudanças locais antes de atualizar
     hasLocalChanges.current = true;
@@ -513,17 +596,30 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const handleChampionTouchStart = (e: React.TouchEvent, championName: string, tier: Tier) => {
     if (!isMobile) return;
     
-    const touch = e.touches[0];
-    setTouchStartPos({ x: touch.clientX, y: touch.clientY, champion: championName, tier });
+    // Cancela qualquer timer anterior
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
     
-    // Long press para remover (500ms)
-    const timer = setTimeout(() => {
+    e.preventDefault(); // Previne comportamento padrão
+    
+    const touch = e.touches[0];
+    const startPos = { x: touch.clientX, y: touch.clientY, champion: championName, tier };
+    setTouchStartPos(startPos);
+    
+    // Long press para remover (600ms - aumentado para evitar remoção acidental)
+    longPressTimerRef.current = setTimeout(() => {
+      // Verifica se ainda estamos no mesmo toque
       removeChampion(championName);
       setTouchStartPos(null);
       setSelectedChampion(null);
-    }, 500);
-    
-    setLongPressTimer(timer);
+      // Feedback visual (vibração se disponível)
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      longPressTimerRef.current = null;
+    }, 600);
   };
 
   // Handler de touch move para mobile (detecta arrasto horizontal para trocar posição)
@@ -536,11 +632,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     const deltaX = Math.abs(touch.clientX - touchStartPos.x);
     const deltaY = Math.abs(touch.clientY - touchStartPos.y);
     
-    // Se moveu mais de 10px em qualquer direção, cancela long press
-    if (deltaX > 10 || deltaY > 10) {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
+    // Se moveu mais de 5px em qualquer direção, cancela long press imediatamente
+    if (deltaX > 5 || deltaY > 5) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
       }
     }
   };
@@ -548,17 +644,17 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   // Handler de touch end para mobile (troca posição se arrastou horizontalmente)
   const handleChampionTouchEnd = (e: React.TouchEvent, championName: string, tier: Tier) => {
     if (!isMobile) {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        setLongPressTimer(null);
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
       }
       return;
     }
     
-    // Cancela long press se ainda estiver ativo
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    // SEMPRE cancela long press quando o toque termina (importante!)
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
     
     if (!touchStartPos) {
@@ -589,7 +685,10 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       }
     } else if (Math.abs(deltaX) < 10 && deltaY < 10) {
       // Se não moveu muito, trata como click normal (seleciona)
-      handleChampionClick(championName, tier);
+      // Pequeno delay para garantir que o long press foi cancelado
+      setTimeout(() => {
+        handleChampionClick(championName, tier);
+      }, 10);
     }
     
     setTouchStartPos(null);

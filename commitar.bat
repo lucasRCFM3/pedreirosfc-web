@@ -1,4 +1,4 @@
 cd "c:\Users\rcfm\Documents\pedreirosfc web"
 git add .
-git commit -m "Correçoes de bugs3"
+git commit -m "bugs e otimizacao"
 git push
