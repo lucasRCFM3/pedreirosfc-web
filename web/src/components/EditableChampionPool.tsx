@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { CHAMPION_POOL, Tier } from "@/config/championPool";
 import { CHAMPION_MEMORY } from "@/lib/champion-memory";
 import { getAllChampions, normalizeChampionName, ChampionData } from "@/lib/champions";
-import { Sword, TreeDeciduous, Zap, Crosshair, Heart, X, RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { Sword, TreeDeciduous, Zap, Crosshair, Heart, X, RefreshCw, Wifi, WifiOff, Copy, Check } from "lucide-react";
 import Image from "next/image";
 
 const ROLE_ICONS = {
@@ -113,6 +113,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const [isSynced, setIsSynced] = useState(true);
   const [lastModified, setLastModified] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   
   // Refs para controlar sincronização
   const lastKnownModified = useRef<string | null>(null);
@@ -454,6 +455,54 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     return new Set(Object.values(currentPool).flat());
   }, [currentPool]);
 
+  // Função para formatar a pool como texto
+  const formatPoolAsText = useCallback(() => {
+    const lines: string[] = [];
+    lines.push("=== CHAMPION POOL ===\n");
+    
+    Object.entries(ROLE_LABELS).forEach(([role, label]) => {
+      const roleData = poolData[role];
+      if (!roleData) return;
+      
+      const hasChampions = Object.values(roleData).some(tier => Array.isArray(tier) && tier.length > 0);
+      if (!hasChampions) return;
+      
+      lines.push(`\n${label.toUpperCase()}:`);
+      
+      Object.entries(TIER_CONFIG).forEach(([tierKey, tierConfig]) => {
+        const tier = tierKey as Tier;
+        const champions = roleData[tier] || [];
+        
+        if (champions.length > 0) {
+          lines.push(`  ${tierConfig.label}: ${champions.join(", ")}`);
+        }
+      });
+    });
+    
+    return lines.join("\n");
+  }, [poolData]);
+
+  // Função para copiar pool como texto
+  const copyPoolAsText = useCallback(async () => {
+    try {
+      const text = formatPoolAsText();
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Erro ao copiar:", error);
+      // Fallback para navegadores antigos
+      const textArea = document.createElement("textarea");
+      textArea.value = formatPoolAsText();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [formatPoolAsText]);
+
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto min-h-screen flex items-center justify-center">
@@ -473,8 +522,27 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
           Champion Pool
         </h1>
         
-        {/* Indicador de sincronização */}
-        <div className="flex items-center gap-2">
+        {/* Indicador de sincronização e botão copiar */}
+        <div className="flex items-center gap-3">
+          {/* Botão Copiar como Texto */}
+          <button
+            onClick={copyPoolAsText}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all duration-200 border border-white/20 hover:border-white/30"
+            title="Copiar champion pool como texto"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-green-400" />
+                <span className="text-green-400">Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copiar como Texto</span>
+              </>
+            )}
+          </button>
+          
           {syncError && (
             <span className="text-xs text-red-400">{syncError}</span>
           )}
