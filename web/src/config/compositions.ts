@@ -138,8 +138,6 @@ export const COMPOSITIONS: Composition[] = [
         title: 'Chegar ao Late Game',
         details: 'A Jinx precisa de 3+ itens (ex: Kraken Slayer, Infinity Edge, Lord Dominik\'s) e a Orianna precisa de 2+ itens. Evite lutas arriscadas no Early/Mid Game (antes dos 20 minutos).'
       },
-    ],
-    weakPoints: [],
       {
         id: 2,
         title: '"The Jinx Reset"',
@@ -151,6 +149,7 @@ export const COMPOSITIONS: Composition[] = [
         details: 'Em lutas de objetivos (Barão/Ancião), Orianna e Sejuani devem usar R (Ultimate) para ZONAR os adversários ou forçar o Engage sob o peel de Lulu/Ornn, garantindo um caminho livre para a Jinx causar dano.'
       }
     ],
+    weakPoints: [],
     draft: {
       bans: [
         'Pantheon (Jungle/Flex): Prioridade Máxima no 25.23. Ele força pressão early em todas as rotas e pune scaling. Deve ser banido.',
@@ -293,8 +292,6 @@ export const COMPOSITIONS: Composition[] = [
         title: 'Evoluções da Kaisa',
         details: 'Kaisa deve evoluir Q (Icathian Rain) e E (Supercharge) o mais rápido possível. Q evolui com 100 AD, E evolui com 100% Attack Speed. Priorizar farm e participação em kills para acelerar as evoluções.'
       },
-    ],
-    weakPoints: [],
       {
         id: 2,
         title: 'Pick-offs Coordenados',
@@ -306,6 +303,7 @@ export const COMPOSITIONS: Composition[] = [
         details: 'Com a composição de engage, devemos forçar objetivos (Dragão/Barão) quando temos vantagem numérica ou após um pick-off bem-sucedido. Galio R e Leona R são cruciais para iniciar teamfights em objetivos.'
       }
     ],
+    weakPoints: [],
     draft: {
       bans: [
         'Campeões com Disengage Forte: Janna, Poppy, Gragas. Eles podem interromper nossos engages coordenados.',
