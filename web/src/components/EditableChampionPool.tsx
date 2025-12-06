@@ -247,8 +247,9 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       }
       
       // Se há alterações locais nesta role, mantém TODAS as alterações locais
-      // NÃO sobrescreve com dados do servidor, pois as alterações locais têm prioridade
+      // NÃO faz merge, NÃO sobrescreve, apenas mantém como está
       // Isso preserva as alterações locais mesmo se o servidor foi atualizado depois
+      // A estrutura local já está correta em merged[role], não precisa fazer nada
       
       // Apenas adiciona campeões novos do servidor que não existem localmente
       const localChampions = new Set<string>();
@@ -273,8 +274,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         }
       });
       
-      // IMPORTANTE: Mantém a estrutura local como está (não sobrescreve com servidor)
-      // Isso garante que alterações locais não sejam perdidas
+      // IMPORTANTE: A estrutura local (localRole) já está em merged[role] e não foi modificada
+      // Apenas adicionamos campeões novos do servidor, mas não alteramos os existentes
     });
     
     return merged;
@@ -307,18 +308,23 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         const finalJustSaved = finalTimeSinceLastSave < 1000;
         
         if (!isUserInteractingRef.current && !finalJustSaved) {
+          // Guarda o lastKnownModified atual antes de atualizar
+          const previousLastModified = lastKnownModified.current;
+          
           setPoolData(prevData => {
             // Sempre faz merge inteligente para preservar alterações em roles diferentes
             // Mesmo sem mudanças locais, faz merge para garantir que todas as roles sejam atualizadas
             const serverTimestamp = new Date(serverModified).getTime();
             const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
             
-            // Se o servidor tem a mesma versão que salvamos, limpa os timestamps
-            // Isso significa que nossas alterações foram persistidas com sucesso
-            if (serverModified === lastKnownModified.current) {
-              // Nossas alterações foram salvas, podemos limpar os timestamps
+            // Se o servidor tem a mesma versão que tínhamos antes, significa que ninguém mais salvou
+            // Nesse caso, podemos limpar os timestamps (nossas alterações foram persistidas)
+            // Mas se o servidor tem uma versão diferente, alguém mais salvou, então mantemos os timestamps
+            if (serverModified === previousLastModified) {
+              // Nossas alterações foram salvas e ninguém mais modificou, podemos limpar os timestamps
               championTimestamps.current = {};
             }
+            // Se serverModified !== previousLastModified, mantemos os timestamps para proteger alterações locais
             
             return merged;
           });
