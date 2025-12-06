@@ -191,8 +191,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       const now = Date.now();
       lastInteractionTimeRef.current = now;
       lastSaveTimeRef.current = now;
-      // Limpa timestamps após salvar com sucesso (as alterações foram persistidas)
-      championTimestamps.current = {};
+      // NÃO limpa timestamps imediatamente - mantém para proteger contra sobrescrita
+      // Os timestamps serão limpos quando sincronizarmos e confirmarmos que o servidor tem nossa versão
       isUserInteractingRef.current = false;
       setIsSynced(true);
       
@@ -247,7 +247,10 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       }
       
       // Se há alterações locais nesta role, mantém TODAS as alterações locais
-      // e adiciona apenas campeões novos do servidor que não existem localmente
+      // NÃO sobrescreve com dados do servidor, pois as alterações locais têm prioridade
+      // Isso preserva as alterações locais mesmo se o servidor foi atualizado depois
+      
+      // Apenas adiciona campeões novos do servidor que não existem localmente
       const localChampions = new Set<string>();
       (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => localChampions.add(champ)));
       
@@ -270,8 +273,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         }
       });
       
-      // Para campeões que existem em ambos, mantém a versão local (já que há alterações locais)
-      // Isso preserva as alterações locais mesmo se o servidor foi atualizado depois
+      // IMPORTANTE: Mantém a estrutura local como está (não sobrescreve com servidor)
+      // Isso garante que alterações locais não sejam perdidas
     });
     
     return merged;
@@ -309,6 +312,14 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
             // Mesmo sem mudanças locais, faz merge para garantir que todas as roles sejam atualizadas
             const serverTimestamp = new Date(serverModified).getTime();
             const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
+            
+            // Se o servidor tem a mesma versão que salvamos, limpa os timestamps
+            // Isso significa que nossas alterações foram persistidas com sucesso
+            if (serverModified === lastKnownModified.current) {
+              // Nossas alterações foram salvas, podemos limpar os timestamps
+              championTimestamps.current = {};
+            }
+            
             return merged;
           });
           
