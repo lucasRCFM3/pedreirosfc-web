@@ -7,6 +7,7 @@ import { Layers, Plus, Edit2, Trash2, RefreshCw, Wifi, WifiOff, Info, BookOpen, 
 import Image from "next/image";
 import Link from "next/link";
 import { CompositionEditor } from "./CompositionEditor";
+import { ChampionAlternatives } from "./ChampionAlternatives";
 
 const ROLE_COLORS = {
   top: 'border-pedreiro-purple',
@@ -353,21 +354,13 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
               {/* Champions Grid */}
               <div className="grid grid-cols-5 gap-3">
                 {composition.champions.map((champ) => (
-                  <div
+                  <ChampionAlternatives
                     key={champ.role}
-                    className={`bg-white/5 rounded-xl p-3 border-2 ${ROLE_COLORS[champ.role]} flex flex-col items-center text-center`}
-                  >
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 mb-2">
-                      <Image
-                        src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championUrl(champ.name)}.png`}
-                        alt={champ.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <p className="font-bold text-white text-sm">{champ.name}</p>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">{ROLE_LABELS[champ.role]}</p>
-                  </div>
+                    champion={champ}
+                    version={version}
+                    roleColor={ROLE_COLORS[champ.role]}
+                    roleLabel={ROLE_LABELS[champ.role]}
+                  />
                 ))}
               </div>
             </div>
