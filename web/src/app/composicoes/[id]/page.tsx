@@ -272,9 +272,9 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
               
               return (
                 <div>
-                  {/* Champion Icons */}
+                  {/* Champion Icons - Apenas ícones, sem descrições */}
                   {championNames.length > 0 && (
-                    <div className="flex flex-wrap gap-3 mb-4">
+                    <div className="flex flex-wrap gap-3">
                       {championNames.map((name) => {
                         // Normaliza o nome do campeão para o formato do Data Dragon
                         // Remove espaços, apóstrofes e ajusta casos especiais
@@ -309,16 +309,6 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
                       })}
                     </div>
                   )}
-                  
-                  {/* Ban Descriptions */}
-                  <ul className="space-y-2">
-                    {composition.draft.bans.map((ban, idx) => (
-                      <li key={idx} className="text-xs text-gray-300 flex items-start gap-2">
-                        <span className="text-red-400 mt-1">•</span>
-                        <span>{ban}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               );
             })()}
