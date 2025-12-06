@@ -192,7 +192,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       lastInteractionTimeRef.current = now;
       lastSaveTimeRef.current = now;
       // NÃO limpa timestamps imediatamente - mantém para proteger contra sobrescrita
-      // Os timestamps serão limpos quando sincronizarmos e confirmarmos que o servidor tem nossa versão
+      // Os timestamps serão limpos apenas quando sincronizarmos e confirmarmos que o servidor tem nossa versão
+      // e que não há alterações conflitantes de outros dispositivos
       isUserInteractingRef.current = false;
       setIsSynced(true);
       
@@ -249,33 +250,12 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       // Se há alterações locais nesta role, mantém TODAS as alterações locais
       // NÃO faz merge, NÃO sobrescreve, apenas mantém como está
       // Isso preserva as alterações locais mesmo se o servidor foi atualizado depois
-      // A estrutura local já está correta em merged[role], não precisa fazer nada
+      // A estrutura local já está correta em merged[role] (que é uma cópia de localData)
+      // NÃO modificamos nada - apenas mantemos como está
       
-      // Apenas adiciona campeões novos do servidor que não existem localmente
-      const localChampions = new Set<string>();
-      (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => localChampions.add(champ)));
-      
-      const serverChampions = new Set<string>();
-      (Object.values(serverRole) as string[][]).forEach(tier => tier.forEach(champ => serverChampions.add(champ)));
-      
-      // Para cada campeão do servidor que não está localmente, adiciona
-      serverChampions.forEach(champion => {
-        if (!localChampions.has(champion)) {
-          // Encontra em qual tier está no servidor
-          let serverTier: Tier | null = null;
-          (Object.entries(serverRole) as [string, string[]][]).forEach(([tier, champs]) => {
-            if (champs.includes(champion)) serverTier = tier as Tier;
-          });
-          
-          // Adiciona na tier do servidor
-          if (serverTier && !localRole[serverTier].includes(champion)) {
-            localRole[serverTier].push(champion);
-          }
-        }
-      });
-      
-      // IMPORTANTE: A estrutura local (localRole) já está em merged[role] e não foi modificada
-      // Apenas adicionamos campeões novos do servidor, mas não alteramos os existentes
+      // IMPORTANTE: Não fazemos NADA com os dados do servidor quando há alterações locais
+      // Isso garante que as alterações locais nunca sejam sobrescritas
+      // O merged[role] já contém as alterações locais de localData, então não precisamos fazer nada
     });
     
     return merged;
@@ -287,8 +267,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     // Não atualiza se estiver salvando ou usuário interagindo AGORA
     const timeSinceLastInteraction = now - lastInteractionTimeRef.current;
     const timeSinceLastSave = now - lastSaveTimeRef.current;
-    const currentlyInteracting = timeSinceLastInteraction < 2000; // 2 segundos após última interação
-    const justSaved = timeSinceLastSave < 1000; // 1 segundo após salvar (proteção mínima)
+    const currentlyInteracting = timeSinceLastInteraction < 500; // 500ms após última interação (reduzido)
+    const justSaved = timeSinceLastSave < 300; // 300ms após salvar (proteção mínima, reduzido)
     
     if (isSavingRef.current || isLoading || isUserInteractingRef.current || currentlyInteracting || justSaved) {
       return;
@@ -310,6 +290,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         if (!isUserInteractingRef.current && !finalJustSaved) {
           // Guarda o lastKnownModified atual antes de atualizar
           const previousLastModified = lastKnownModified.current;
+          // Guarda os timestamps atuais antes de fazer merge
+          const currentTimestamps = JSON.parse(JSON.stringify(championTimestamps.current));
           
           setPoolData(prevData => {
             // Sempre faz merge inteligente para preservar alterações em roles diferentes
@@ -317,17 +299,18 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
             const serverTimestamp = new Date(serverModified).getTime();
             const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
             
-            // Se o servidor tem a mesma versão que tínhamos antes, significa que ninguém mais salvou
-            // Nesse caso, podemos limpar os timestamps (nossas alterações foram persistidas)
-            // Mas se o servidor tem uma versão diferente, alguém mais salvou, então mantemos os timestamps
-            if (serverModified === previousLastModified) {
-              // Nossas alterações foram salvas e ninguém mais modificou, podemos limpar os timestamps
-              championTimestamps.current = {};
-            }
-            // Se serverModified !== previousLastModified, mantemos os timestamps para proteger alterações locais
+            // IMPORTANTE: NUNCA limpamos timestamps durante o merge
+            // Os timestamps são a única forma de saber quais alterações foram locais
+            // Eles só devem ser limpos quando confirmarmos que o servidor tem nossa versão
+            // e que não há alterações conflitantes
+            // Por enquanto, mantemos os timestamps para proteger alterações locais
             
             return merged;
           });
+          
+          // Restaura os timestamps caso tenham sido modificados durante o merge
+          // Isso garante que sempre temos os timestamps corretos
+          championTimestamps.current = currentTimestamps;
           
           setLastModified(serverModified);
           lastKnownModified.current = serverModified;
