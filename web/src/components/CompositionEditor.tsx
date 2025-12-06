@@ -722,27 +722,18 @@ function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help, showC
       {showChampionIcons && allChampionNames.length > 0 && version && (
         <div className="flex flex-wrap gap-2 mb-3 p-3 bg-white/5 rounded-lg border border-white/10">
           {allChampionNames.map((name) => {
-            // Normaliza o nome do campeão
-            let normalizedName = name.replace(/\s/g, '').replace(/'/g, '');
-            
-            const specialCases: Record<string, string> = {
-              'LeBlanc': 'Leblanc',
-              'KogMaw': 'KogMaw',
-              'Kog\'Maw': 'KogMaw',
-            };
-            
-            if (specialCases[name]) {
-              normalizedName = specialCases[name];
-            }
-            
-            // Verifica se o campeão existe na lista
-            const championExists = allChampions?.some(c => 
-              normalizeChampionName(c.name) === normalizedName || 
-              c.name === name ||
-              c.name.replace(/\s/g, '') === normalizedName
+            // Busca o campeão na lista completa para pegar o ID correto
+            const championData = allChampions?.find(c => 
+              c.name === name || 
+              c.name.toLowerCase() === name.toLowerCase()
             );
             
-            if (!championExists) return null;
+            // Usa normalizeChampionName que já tem todos os casos especiais (incluindo Wukong -> MonkeyKing)
+            const normalizedName = championData 
+              ? normalizeChampionName(championData.name, championData.id)
+              : normalizeChampionName(name);
+            
+            if (!championData) return null;
             
             return (
               <div key={name} className="relative group" title={name}>

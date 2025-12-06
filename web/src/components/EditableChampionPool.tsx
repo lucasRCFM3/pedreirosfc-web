@@ -107,7 +107,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const [activeRole, setActiveRole] = useState(initialRole);
   const [selectedLane, setSelectedLane] = useState<string | null>(null);
   const [draggedChampion, setDraggedChampion] = useState<{ name: string; fromTier?: Tier } | null>(null);
-  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number; champion: string; fromTier?: Tier } | null>(null);
+  const [selectedChampion, setSelectedChampion] = useState<string | null>(null); // Para mobile: campeão selecionado
   const [poolData, setPoolData] = useState<Record<string, Record<Tier, string[]>>>(createDefaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -434,69 +434,29 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     setDraggedChampion(null);
   };
 
-  // Handlers de touch (mobile)
-  const handleTouchStart = (e: React.TouchEvent, championName: string, fromTier?: Tier) => {
-    const touch = e.touches[0];
-    setTouchStartPos({
-      x: touch.clientX,
-      y: touch.clientY,
-      champion: championName,
-      fromTier
-    });
-    setDraggedChampion({ name: championName, fromTier });
+  // Handlers de touch (mobile) - sistema de toque-toque
+  const handleChampionClick = (championName: string) => {
+    // Se já tem um campeão selecionado e é o mesmo, deseleciona
+    if (selectedChampion === championName) {
+      setSelectedChampion(null);
+      return;
+    }
+    
+    // Seleciona o campeão
+    setSelectedChampion(championName);
     isUserInteractingRef.current = true;
     lastInteractionTimeRef.current = Date.now();
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartPos) {
-      e.preventDefault(); // Previne scroll durante o drag
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent, targetTier?: Tier) => {
-    if (!touchStartPos) {
-      setTouchStartPos(null);
-      setDraggedChampion(null);
-      return;
-    }
-
-    const touch = e.changedTouches[0];
-    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
-    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
-    
-    // Se moveu menos de 10px, considera como click (não drag)
-    if (deltaX < 10 && deltaY < 10) {
-      setTouchStartPos(null);
-      setDraggedChampion(null);
+  const handleTierClick = (targetTier: Tier) => {
+    // Se tem um campeão selecionado, move ele para o tier
+    if (selectedChampion) {
+      moveChampion(selectedChampion, targetTier);
+      setSelectedChampion(null);
       setTimeout(() => {
         isUserInteractingRef.current = false;
       }, 2000);
-      return;
     }
-
-    // Se tem targetTier explícito, usa ele
-    if (targetTier) {
-      moveChampion(touchStartPos.champion, targetTier);
-    } else {
-      // Tenta detectar o tier pelo elemento tocado
-      const element = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (element) {
-        const tierElement = element.closest('[data-tier]');
-        if (tierElement) {
-          const tier = tierElement.getAttribute('data-tier') as Tier;
-          if (tier) {
-            moveChampion(touchStartPos.champion, tier);
-          }
-        }
-      }
-    }
-
-    setTouchStartPos(null);
-    setDraggedChampion(null);
-    setTimeout(() => {
-      isUserInteractingRef.current = false;
-    }, 2000);
   };
 
   // Normaliza currentPool para garantir que todas as tiers existam
@@ -665,10 +625,12 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
             <div
               key={tier}
               data-tier={tier}
-              className="bg-white/5 rounded-xl p-3 border border-white/10"
+              className={`bg-white/5 rounded-xl p-3 border transition-all ${
+                selectedChampion ? 'border-pedreiro-purple/50 cursor-pointer' : 'border-white/10'
+              }`}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(tier)}
-              onTouchEnd={(e) => handleTouchEnd(e, tier)}
+              onClick={() => handleTierClick(tier)}
             >
               <div className={`inline-block px-3 py-1 rounded-lg mb-2 ${tierConfig.bgColor} ${tierConfig.textColor}`}>
                 <span className="font-bold text-xs">{tierConfig.label}</span>
@@ -688,10 +650,12 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                         draggable
                         onDragStart={() => handleDragStart(champion, tier)}
                         onDragEnd={handleDragEnd}
-                        onTouchStart={(e) => handleTouchStart(e, champion, tier)}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={(e) => handleTouchEnd(e)}
-                        className="group relative aspect-square rounded overflow-hidden border border-white/10 hover:border-pedreiro-purple/50 transition-all duration-300 hover:scale-110 cursor-move touch-none"
+                        onClick={() => handleChampionClick(champion)}
+                        className={`group relative aspect-square rounded overflow-hidden border transition-all duration-300 hover:scale-110 cursor-pointer ${
+                          selectedChampion === champion
+                            ? 'border-pedreiro-purple border-2 scale-110 ring-2 ring-pedreiro-purple/50'
+                            : 'border-white/10 hover:border-pedreiro-purple/50'
+                        }`}
                       >
                         <Image
                           src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championId}.png`}
@@ -720,8 +684,10 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                   })}
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500 min-h-[50px] flex items-center justify-center border-2 border-dashed border-white/10 rounded">
-                  <p className="text-xs">Arraste campeões aqui</p>
+                <div className={`text-center py-4 text-gray-500 min-h-[50px] flex items-center justify-center border-2 border-dashed rounded transition-all ${
+                  selectedChampion ? 'border-pedreiro-purple/50 bg-pedreiro-purple/10' : 'border-white/10'
+                }`}>
+                  <p className="text-xs">{selectedChampion ? 'Toque aqui para mover' : 'Arraste campeões aqui'}</p>
                 </div>
               )}
             </div>
@@ -786,17 +752,13 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                     isUserInteractingRef.current = false;
                   }, 2000);
                 }}
-                onTouchStart={(e) => {
-                  isUserInteractingRef.current = true;
-                  lastInteractionTimeRef.current = Date.now();
-                  handleTouchStart(e, champion.name);
-                }}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={(e) => handleTouchEnd(e)}
-                className={`group relative aspect-square rounded overflow-hidden border-2 transition-all duration-300 hover:scale-110 cursor-move touch-none ${
-                  isInPool 
-                    ? 'border-green-500/50 bg-green-500/10' 
-                    : 'border-white/10 hover:border-pedreiro-purple/50'
+                onClick={() => handleChampionClick(champion.name)}
+                className={`group relative aspect-square rounded overflow-hidden border-2 transition-all duration-300 hover:scale-110 cursor-pointer ${
+                  selectedChampion === champion.name
+                    ? 'border-pedreiro-purple border-2 scale-110 ring-2 ring-pedreiro-purple/50'
+                    : isInPool 
+                      ? 'border-green-500/50 bg-green-500/10' 
+                      : 'border-white/10 hover:border-pedreiro-purple/50'
                 }`}
                 title={champion.name}
               >

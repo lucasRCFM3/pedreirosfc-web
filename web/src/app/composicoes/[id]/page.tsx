@@ -276,20 +276,16 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
                   {championNames.length > 0 && (
                     <div className="flex flex-wrap gap-3">
                       {championNames.map((name) => {
-                        // Normaliza o nome do campeão para o formato do Data Dragon
-                        // Remove espaços, apóstrofes e ajusta casos especiais
-                        let normalizedName = name.replace(/\s/g, '').replace(/'/g, '');
+                        // Busca o campeão na lista completa para pegar o ID correto
+                        const championData = allChampions.find(c => 
+                          c.name === name || 
+                          c.name.toLowerCase() === name.toLowerCase()
+                        );
                         
-                        // Casos especiais conhecidos
-                        const specialCases: Record<string, string> = {
-                          'LeBlanc': 'Leblanc',
-                          'KogMaw': 'KogMaw',
-                          'Kog\'Maw': 'KogMaw',
-                        };
-                        
-                        if (specialCases[name]) {
-                          normalizedName = specialCases[name];
-                        }
+                        // Usa normalizeChampionName que já tem todos os casos especiais (incluindo Wukong -> MonkeyKing)
+                        const normalizedName = championData 
+                          ? normalizeChampionName(championData.name, championData.id)
+                          : normalizeChampionName(name);
                         
                         return (
                           <div key={name} className="relative group" title={name}>
