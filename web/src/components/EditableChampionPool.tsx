@@ -224,6 +224,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     
     // Para cada role, faz merge inteligente
     Object.keys(serverData).forEach(role => {
+      // Garante que merged[role] existe
+      if (!merged[role]) {
+        merged[role] = { splus: [], s: [], a: [], b: [], c: [] };
+      }
+      
       const localRole = merged[role];
       const serverRole = serverData[role];
       const roleTimestamps = championTimestamps.current[role] || {};
@@ -319,15 +324,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         
         if (!isUserInteractingRef.current && !finalJustSaved) {
           setPoolData(prevData => {
-            // Se temos mudanças locais não salvas, faz merge inteligente
-            if (hasLocalChanges.current) {
-              const serverTimestamp = new Date(serverModified).getTime();
-              const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
-              return merged;
-            } else {
-              // Se não temos mudanças locais, usa dados do servidor
-              return normalizePoolData(result.data);
-            }
+            // Sempre faz merge inteligente para preservar alterações em roles diferentes
+            // Mesmo sem mudanças locais, faz merge para garantir que todas as roles sejam atualizadas
+            const serverTimestamp = new Date(serverModified).getTime();
+            const merged = mergePoolData(prevData, normalizePoolData(result.data), serverTimestamp);
+            return merged;
           });
           
           setLastModified(serverModified);
