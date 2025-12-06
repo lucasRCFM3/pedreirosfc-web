@@ -225,7 +225,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
   }
 
   return (
-    <div className="p-6 md:p-12 max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 md:p-6 lg:p-12 max-w-7xl mx-auto min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -318,12 +318,12 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
               key={composition.id}
               className="bg-white/5 rounded-3xl p-6 border border-white/10 hover:border-pedreiro-purple/50 hover:bg-white/10 transition-all duration-300"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-black text-white mb-2">
+              <div className="flex items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl md:text-2xl font-black text-white mb-1 md:mb-2">
                     {composition.title}
                   </h2>
-                  <p className="text-sm text-gray-400">{composition.objective}</p>
+                  <p className="text-xs md:text-sm text-gray-400 line-clamp-2">{composition.objective}</p>
                 </div>
                 
                 <div className="flex items-center gap-2 ml-4">
@@ -352,7 +352,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
               </div>
 
               {/* Champions Grid */}
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
                 {composition.champions.map((champ) => (
                   <ChampionAlternatives
                     key={champ.role}

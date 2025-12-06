@@ -64,7 +64,7 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
   const championUrl = (name: string) => normalizeChampionName(name);
 
   return (
-    <div className="p-6 md:p-12 max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 md:p-6 lg:p-12 max-w-7xl mx-auto min-h-screen">
       {/* Back Button */}
       <Link
         href="/composicoes"
@@ -75,19 +75,19 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
       </Link>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-5xl font-black tracking-tighter text-white mb-2">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white mb-2">
           {composition.title || "Composição sem título"}
         </h1>
         {composition.objective && composition.objective.trim() && (
-          <p className="text-gray-300 text-lg leading-relaxed">{composition.objective}</p>
+          <p className="text-gray-300 text-sm md:text-base lg:text-lg leading-relaxed">{composition.objective}</p>
         )}
       </div>
 
       {/* Composition Card */}
-      <div className="bg-white/5 rounded-3xl p-8 border border-white/10 mb-8">
+      <div className="bg-white/5 rounded-2xl md:rounded-3xl p-4 md:p-6 lg:p-8 border border-white/10 mb-6 md:mb-8">
         {/* Champions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
           {(composition.champions || []).map((champ) => (
             <ChampionAlternatives
               key={champ.role}

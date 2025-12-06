@@ -29,7 +29,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-pedreiro-dark text-white min-h-screen`}
       >
         <Sidebar />
-        <main className="pl-20 min-h-screen relative overflow-hidden">
+        <main className="md:pl-20 pb-20 md:pb-0 min-h-screen relative overflow-hidden">
           {/* Background effects */}
           <div className="fixed top-0 left-0 w-full h-full pointer-events-none z-[-1]">
              <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-pedreiro-purple/20 rounded-full blur-[128px]" />

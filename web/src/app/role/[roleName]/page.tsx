@@ -147,7 +147,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
       : getCsColor(avgCsPerMin, roleKey);
 
   return (
-    <div className="p-6 md:p-12 max-w-6xl mx-auto min-h-screen flex flex-col lg:flex-row gap-12">
+    <div className="p-4 md:p-6 lg:p-12 max-w-6xl mx-auto min-h-screen flex flex-col lg:flex-row gap-6 md:gap-12">
       
       {/* Main Content */}
       <div className="flex-1 order-2 lg:order-1">
@@ -259,11 +259,11 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
         )}
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2 mb-6 md:mb-8 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
             {[
                 { id: 'all', label: 'Todas' },
-                { id: 'solo', label: 'Ranked Solo' },
-                { id: 'flex', label: 'Ranked Flex' }
+                { id: 'solo', label: 'Solo' },
+                { id: 'flex', label: 'Flex' }
             ].map((tab) => {
                 const isActive = filter === tab.id;
                 return (
@@ -271,7 +271,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         key={tab.id}
                         href={`/role/${params.roleName}?filter=${tab.id}`}
                         className={`
-                            px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
+                            px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0
                             ${isActive 
                                 ? 'bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
                                 : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}
@@ -312,31 +312,31 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                     return (
                     <div 
                         key={match.matchId}
-                        className="group flex items-center gap-4 p-3 md:p-4 rounded-xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 hover:bg-[#0f0f0f] transition-all duration-300"
+                        className="group flex items-center gap-2 md:gap-4 p-2 md:p-3 lg:p-4 rounded-lg md:rounded-xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 hover:bg-[#0f0f0f] transition-all duration-300"
                     >
                         {/* Status Strip */}
                         <div className={`w-1 h-12 rounded-full ${isWin ? 'bg-pedreiro-blue' : 'bg-red-500/50'}`} />
 
                         {/* Champion */}
-                        <div className="flex items-center gap-4 w-48">
+                        <div className="flex items-center gap-2 md:gap-4 w-32 md:w-48 flex-shrink-0">
                             <div className="relative">
                                 <Image 
                                     src={match.championImageUrl} 
                                     alt={match.champion}
-                                    width={48}
-                                    height={48}
-                                    className={`rounded-lg ${!isWin && 'grayscale-[0.5]'}`}
+                                    width={40}
+                                    height={40}
+                                    className={`rounded-lg ${!isWin && 'grayscale-[0.5]'} md:w-12 md:h-12`}
                                 />
                             </div>
-                            <div className="flex flex-col">
-                                <span className={`font-bold text-sm ${isWin ? 'text-white' : 'text-gray-400'}`}>
+                            <div className="flex flex-col hidden sm:flex">
+                                <span className={`font-bold text-xs md:text-sm ${isWin ? 'text-white' : 'text-gray-400'}`}>
                                     {match.champion}
                                 </span>
                             </div>
                         </div>
 
                         {/* KDA & KP% */}
-                        <div className="flex-1 flex flex-col items-center justify-center border-l border-white/5 border-r px-4 md:px-8 gap-1">
+                        <div className="flex-1 flex flex-col items-center justify-center border-l border-white/5 border-r px-2 md:px-4 lg:px-8 gap-1 min-w-0">
                             <div className="flex items-baseline gap-1 text-lg font-medium text-gray-200 tabular-nums">
                                 <span>{kills}</span>
                                 <span className="text-gray-600 text-sm">/</span>
@@ -353,7 +353,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         </div>
 
                         {/* Metrics (CS & Vision) */}
-                        <div className="w-40 text-right hidden md:flex flex-col justify-center gap-1">
+                        <div className="w-24 md:w-40 text-right hidden sm:flex flex-col justify-center gap-1">
                             {isSupport ? (
                                 <div className={`text-sm font-mono font-bold flex items-center justify-end gap-2 ${visionColor}`}>
                                     <Eye className="w-3 h-3" /> {visionScore} ({visionPerMin}/m)
@@ -371,7 +371,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         </div>
 
                         {/* Time */}
-                        <div className="w-24 text-right flex flex-col items-end gap-1 pl-4 border-l border-white/5 ml-2">
+                        <div className="w-16 md:w-24 text-right flex flex-col items-end gap-1 pl-2 md:pl-4 border-l border-white/5 ml-1 md:ml-2">
                             <div className="flex items-center gap-1.5 text-xs text-gray-400">
                                 <Clock className="w-3 h-3" />
                                 {Math.floor(gameMin)}m

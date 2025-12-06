@@ -515,7 +515,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto min-h-screen flex flex-col">
+    <div className="p-3 md:p-4 lg:p-6 max-w-7xl mx-auto min-h-screen flex flex-col">
       {/* Header */}
       <div className="mb-3 flex-shrink-0 flex items-center justify-between">
         <h1 className="text-3xl font-black tracking-tighter text-white">
