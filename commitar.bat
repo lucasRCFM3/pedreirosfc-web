@@ -1,4 +1,4 @@
 cd "c:\Users\rcfm\Documents\pedreirosfc web"
 git add .
-git commit -m "simplificar composicoes2fix"
+git commit -m "bans com icones"
 git push

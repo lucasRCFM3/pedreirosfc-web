@@ -447,6 +447,9 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                     onUpdate={(i, v) => updateDraftItem('bans', i, v)}
                     placeholder="Ex: Pantheon (Jungle/Flex): Prioridade Máxima"
                     help="Lista de campeões ou estratégias de ban recomendadas"
+                    showChampionIcons={true}
+                    version={version}
+                    allChampions={allChampions}
                   />
                 </div>
               </div>
@@ -590,11 +593,142 @@ interface ListEditorProps {
   onUpdate: (index: number, value: string) => void;
   placeholder?: string;
   help?: string;
+  showChampionIcons?: boolean;
+  version?: string;
+  allChampions?: ChampionData[];
 }
 
-function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help }: ListEditorProps) {
+// Função para extrair nomes de campeões de um texto de ban
+function extractChampionNames(banText: string): string[] {
+  const championNames: string[] = [];
+  
+  // Lista de palavras comuns e roles para filtrar
+  const commonWords = new Set([
+    'Prioridade', 'Máxima', 'Um', 'Ex', 'Picks', 'Campeões', 'Assassino', 'Engage', 'Forte', 
+    'Tank', 'que', 'punem', 'Não', 'podemos', 'dar', 'Eles', 'podem', 'interromper', 
+    'nossos', 'engages', 'coordenados', 'eliminar', 'antes', 'dela', 'evoluir', 'Range', 
+    'Superior', 'early', 'game', 'evoluções', 'El', 'força', 'pressão', 'todas', 'rotas', 
+    'pune', 'scaling', 'Deve', 'ser', 'banido', 'ignoram', 'Frontline', 'vão', 'direto',
+    'Jungle', 'Flex', 'ADC', 'Top', 'Mid', 'Support', 'Sup', 'Com', 'Disengage', 'Assassinos'
+  ]);
+  
+  // Padrão 1: Nomes antes de parênteses "Pantheon (Jungle/Flex)"
+  const beforeParen = banText.match(/([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s*\(/g);
+  if (beforeParen) {
+    beforeParen.forEach(match => {
+      const name = match.replace(/\s*\(.*$/, '').trim();
+      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+        championNames.push(name);
+      }
+    });
+  }
+  
+  // Padrão 2: Nomes após ":" - ": Zed, LeBlanc, Katarina" ou ": Janna, Poppy"
+  const afterColon = banText.match(/:\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/g);
+  if (afterColon) {
+    afterColon.forEach(match => {
+      const name = match.replace(/^:\s+/, '').trim();
+      const firstWord = name.split(/\s|,/)[0];
+      if (firstWord && !commonWords.has(firstWord) && firstWord.length >= 3 && firstWord.length <= 15 && !championNames.includes(firstWord)) {
+        championNames.push(firstWord);
+      }
+    });
+  }
+  
+  // Padrão 3: Nomes após "ou" - "Zed ou LeBlanc"
+  const afterOr = banText.match(/ou\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)/g);
+  if (afterOr) {
+    afterOr.forEach(match => {
+      const name = match.replace(/^ou\s+/, '').trim();
+      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+        championNames.push(name);
+      }
+    });
+  }
+  
+  // Padrão 4: Nomes separados por vírgulas "Janna, Poppy, Gragas"
+  const commaSeparated = banText.match(/([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s*,/g);
+  if (commaSeparated) {
+    commaSeparated.forEach(match => {
+      const name = match.replace(/\s*,.*$/, '').trim();
+      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+        championNames.push(name);
+      }
+    });
+  }
+  
+  // Padrão 5: Último nome em lista separada por vírgulas "Gragas." ou "Katarina."
+  const lastInList = banText.match(/,\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)[.\s]/g);
+  if (lastInList) {
+    lastInList.forEach(match => {
+      const name = match.replace(/^,\s+/, '').replace(/[.\s].*$/, '').trim();
+      if (name && !commonWords.has(name) && name.length >= 3 && name.length <= 15 && !championNames.includes(name)) {
+        championNames.push(name);
+      }
+    });
+  }
+  
+  return championNames;
+}
+
+function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help, showChampionIcons, version, allChampions }: ListEditorProps) {
+  // Extrai todos os nomes de campeões de todos os items
+  const allChampionNames = showChampionIcons && version && allChampions
+    ? Array.from(new Set(items.flatMap(item => extractChampionNames(item))))
+    : [];
+
   return (
     <div className="space-y-2">
+      {/* Mostra ícones de campeões se habilitado */}
+      {showChampionIcons && allChampionNames.length > 0 && version && (
+        <div className="flex flex-wrap gap-2 mb-3 p-3 bg-white/5 rounded-lg border border-white/10">
+          {allChampionNames.map((name) => {
+            // Normaliza o nome do campeão
+            let normalizedName = name.replace(/\s/g, '').replace(/'/g, '');
+            
+            const specialCases: Record<string, string> = {
+              'LeBlanc': 'Leblanc',
+              'KogMaw': 'KogMaw',
+              'Kog\'Maw': 'KogMaw',
+            };
+            
+            if (specialCases[name]) {
+              normalizedName = specialCases[name];
+            }
+            
+            // Verifica se o campeão existe na lista
+            const championExists = allChampions?.some(c => 
+              normalizeChampionName(c.name) === normalizedName || 
+              c.name === name ||
+              c.name.replace(/\s/g, '') === normalizedName
+            );
+            
+            if (!championExists) return null;
+            
+            return (
+              <div key={name} className="relative group" title={name}>
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden border-2 border-red-500/50 bg-red-500/10">
+                  <Image
+                    src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${normalizedName}.png`}
+                    alt={name}
+                    width={40}
+                    height={40}
+                    className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    onError={(e) => {
+                      // Se a imagem não carregar, esconde o elemento
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border border-white/20">
+                  <Ban className="w-2.5 h-2.5 text-white" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
       {items.map((item, index) => (
         <div key={index} className="flex items-center gap-2">
           <input
