@@ -147,6 +147,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         lastKnownModified.current = initialLastModified;
         // Inicializa o timestamp de save para evitar sobrescrever imediatamente após carregar
         lastSaveTimeRef.current = Date.now();
+        // Limpa timestamps ao carregar (começamos do zero)
+        championTimestamps.current = {};
         setIsSynced(true);
         setSyncError(null);
       }
@@ -189,6 +191,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       const now = Date.now();
       lastInteractionTimeRef.current = now;
       lastSaveTimeRef.current = now;
+      // Limpa timestamps após salvar com sucesso (as alterações foram persistidas)
+      championTimestamps.current = {};
       isUserInteractingRef.current = false;
       setIsSynced(true);
       
@@ -242,55 +246,32 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         return;
       }
       
-      // Se há alterações locais, faz merge campeão por campeão
-      // Coleta todos os campeões únicos de ambas as versões
-      const allChampions = new Set<string>();
-      (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
-      (Object.values(serverRole) as string[][]).forEach(tier => tier.forEach(champ => allChampions.add(champ)));
+      // Se há alterações locais nesta role, mantém TODAS as alterações locais
+      // e adiciona apenas campeões novos do servidor que não existem localmente
+      const localChampions = new Set<string>();
+      (Object.values(localRole) as string[][]).forEach(tier => tier.forEach(champ => localChampions.add(champ)));
       
-      // Para cada campeão, decide qual versão usar
-      allChampions.forEach(champion => {
-        // Encontra onde está no local e no servidor
-        let localTier: Tier | null = null;
-        let serverTier: Tier | null = null;
-        
-        (Object.entries(localRole) as [string, string[]][]).forEach(([tier, champs]) => {
-          if (champs.includes(champion)) localTier = tier as Tier;
-        });
-        
-        (Object.entries(serverRole) as [string, string[]][]).forEach(([tier, champs]) => {
-          if (champs.includes(champion)) serverTier = tier as Tier;
-        });
-        
-        // Se o campeão foi alterado localmente recentemente, usa a versão local
-        const localTimestamp = roleTimestamps[champion] || 0;
-        
-        // Se temos timestamp local e é mais recente que o servidor, mantém local
-        // Caso contrário, usa a versão do servidor
-        if (localTimestamp > serverTimestamp && localTier !== null) {
-          // Mantém versão local - remove de outras tiers e adiciona na tier local
-          Object.keys(localRole).forEach(tier => {
-            const tierArray = localRole[tier as Tier];
-            if (Array.isArray(tierArray)) {
-              localRole[tier as Tier] = tierArray.filter(c => c !== champion);
-            }
+      const serverChampions = new Set<string>();
+      (Object.values(serverRole) as string[][]).forEach(tier => tier.forEach(champ => serverChampions.add(champ)));
+      
+      // Para cada campeão do servidor que não está localmente, adiciona
+      serverChampions.forEach(champion => {
+        if (!localChampions.has(champion)) {
+          // Encontra em qual tier está no servidor
+          let serverTier: Tier | null = null;
+          (Object.entries(serverRole) as [string, string[]][]).forEach(([tier, champs]) => {
+            if (champs.includes(champion)) serverTier = tier as Tier;
           });
-          if (localTier && !localRole[localTier].includes(champion)) {
-            localRole[localTier].push(champion);
-          }
-        } else if (serverTier !== null) {
-          // Usa versão do servidor - remove de todas as tiers e adiciona na tier do servidor
-          Object.keys(localRole).forEach(tier => {
-            const tierArray = localRole[tier as Tier];
-            if (Array.isArray(tierArray)) {
-              localRole[tier as Tier] = tierArray.filter(c => c !== champion);
-            }
-          });
+          
+          // Adiciona na tier do servidor
           if (serverTier && !localRole[serverTier].includes(champion)) {
             localRole[serverTier].push(champion);
           }
         }
       });
+      
+      // Para campeões que existem em ambos, mantém a versão local (já que há alterações locais)
+      // Isso preserva as alterações locais mesmo se o servidor foi atualizado depois
     });
     
     return merged;
