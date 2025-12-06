@@ -305,7 +305,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       if (serverModified && serverModified !== lastKnownModified.current) {
         // Verifica novamente antes de atualizar (race condition)
         const finalTimeSinceLastSave = Date.now() - lastSaveTimeRef.current;
-        const finalJustSaved = finalTimeSinceLastSave < 1000;
+        const finalJustSaved = finalTimeSinceLastSave < 300; // Reduzido para 300ms
         
         if (!isUserInteractingRef.current && !finalJustSaved) {
           // Guarda o lastKnownModified atual antes de atualizar
@@ -356,13 +356,13 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     loadFromServer();
   }, [loadFromServer]);
 
-  // Sincronização periódica (a cada 2 segundos - mais rápido para sincronização em tempo real)
+  // Sincronização periódica (a cada 1 segundo - sincronização quase em tempo real)
   useEffect(() => {
     if (isLoading) return;
     
     syncIntervalRef.current = setInterval(() => {
       checkForUpdates();
-    }, 2000); // Reduzido para 2s para sincronização mais rápida
+    }, 1000); // Reduzido para 1s para sincronização quase em tempo real
 
     return () => {
       if (syncIntervalRef.current) {
@@ -384,12 +384,12 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     hasLocalChanges.current = true;
     setIsSynced(false);
 
-    // Debounce: salva após 1 segundo sem mudanças (balanceado entre responsividade e performance)
+    // Debounce: salva após 500ms sem mudanças (mais rápido, mas ainda evita salvamentos excessivos)
     saveTimeoutRef.current = setTimeout(() => {
       if (!isSavingRef.current) {
         saveToServer(poolData);
       }
-    }, 1000);
+    }, 500);
 
     return () => {
       if (saveTimeoutRef.current) {
