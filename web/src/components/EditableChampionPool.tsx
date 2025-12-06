@@ -108,6 +108,9 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const [selectedLane, setSelectedLane] = useState<string | null>(null);
   const [draggedChampion, setDraggedChampion] = useState<{ name: string; fromTier?: Tier } | null>(null);
   const [selectedChampion, setSelectedChampion] = useState<string | null>(null); // Para mobile: campeão selecionado
+  const [touchStartPos, setTouchStartPos] = useState<{ x: number; y: number; champion: string; tier: Tier } | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [poolData, setPoolData] = useState<Record<string, Record<Tier, string[]>>>(createDefaultData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -124,6 +127,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   const isSavingRef = useRef(false);
   const isUserInteractingRef = useRef(false);
   const lastInteractionTimeRef = useRef<number>(0);
+  const lastSaveTimeRef = useRef<number>(0); // Timestamp do último save bem-sucedido
 
   // Carrega dados da API
   const loadFromServer = useCallback(async () => {
@@ -136,8 +140,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
         // Normaliza os dados (migra formato antigo se necessário)
         const normalizedData = normalizePoolData(result.data);
         setPoolData(normalizedData);
-        setLastModified(result.lastModified || null);
-        lastKnownModified.current = result.lastModified || null;
+        const initialLastModified = result.lastModified || null;
+        setLastModified(initialLastModified);
+        lastKnownModified.current = initialLastModified;
+        // Inicializa o timestamp de save para evitar sobrescrever imediatamente após carregar
+        lastSaveTimeRef.current = Date.now();
         setIsSynced(true);
         setSyncError(null);
       }
@@ -172,9 +179,14 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       }
 
       const result = await response.json();
-      setLastModified(result.lastModified || new Date().toISOString());
-      lastKnownModified.current = result.lastModified || new Date().toISOString();
+      const newLastModified = result.lastModified || new Date().toISOString();
+      setLastModified(newLastModified);
+      lastKnownModified.current = newLastModified;
       hasLocalChanges.current = false;
+      // Atualiza os timestamps para evitar que checkForUpdates sobrescreva imediatamente
+      const now = Date.now();
+      lastInteractionTimeRef.current = now;
+      lastSaveTimeRef.current = now;
       isUserInteractingRef.current = false;
       setIsSynced(true);
       
@@ -194,11 +206,14 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
 
   // Verifica se há atualizações no servidor
   const checkForUpdates = useCallback(async () => {
+    const now = Date.now();
     // Não atualiza se estiver salvando, tiver mudanças locais, ou usuário interagindo recentemente
-    const timeSinceLastInteraction = Date.now() - lastInteractionTimeRef.current;
-    const recentlyInteracted = timeSinceLastInteraction < 5000; // 5 segundos após última interação
+    const timeSinceLastInteraction = now - lastInteractionTimeRef.current;
+    const timeSinceLastSave = now - lastSaveTimeRef.current;
+    const recentlyInteracted = timeSinceLastInteraction < 10000; // 10 segundos após última interação
+    const recentlySaved = timeSinceLastSave < 5000; // 5 segundos após salvar (proteção contra rollback)
     
-    if (isSavingRef.current || hasLocalChanges.current || isLoading || isUserInteractingRef.current || recentlyInteracted) {
+    if (isSavingRef.current || hasLocalChanges.current || isLoading || isUserInteractingRef.current || recentlyInteracted || recentlySaved) {
       return;
     }
 
@@ -212,7 +227,11 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       // Se o servidor tem uma versão mais nova e não temos mudanças locais, atualiza
       if (serverModified && serverModified !== lastKnownModified.current) {
         // Verifica novamente antes de atualizar (race condition)
-        if (!hasLocalChanges.current && !isUserInteractingRef.current) {
+        // Dupla verificação para garantir que não sobrescrevemos após salvar
+        const finalTimeSinceLastSave = Date.now() - lastSaveTimeRef.current;
+        const finalRecentlySaved = finalTimeSinceLastSave < 5000;
+        
+        if (!hasLocalChanges.current && !isUserInteractingRef.current && !finalRecentlySaved) {
           setPoolData(prevData => {
             // Garante que não sobrescreve se houver mudanças locais agora
             if (!hasLocalChanges.current) {
@@ -232,6 +251,16 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
       console.error("Erro ao verificar atualizações:", error);
     }
   }, [isLoading]);
+
+  // Detecta se é mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Carrega dados iniciais
   useEffect(() => {
@@ -386,6 +415,29 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     });
   };
 
+  // Função para trocar posição de campeões dentro do mesmo tier (mobile)
+  const swapChampionsInTier = (tier: Tier, champion1: string, champion2: string) => {
+    isUserInteractingRef.current = true;
+    lastInteractionTimeRef.current = Date.now();
+    hasLocalChanges.current = true;
+    
+    setPoolData(prev => {
+      const newData = JSON.parse(JSON.stringify(prev));
+      if (!newData[activeRole] || !newData[activeRole][tier]) return prev;
+      
+      const tierArray = [...newData[activeRole][tier]];
+      const index1 = tierArray.indexOf(champion1);
+      const index2 = tierArray.indexOf(champion2);
+      
+      if (index1 !== -1 && index2 !== -1) {
+        [tierArray[index1], tierArray[index2]] = [tierArray[index2], tierArray[index1]];
+        newData[activeRole][tier] = tierArray;
+      }
+      
+      return newData;
+    });
+  };
+
   // Função para remover campeão de todas as tiers
   const removeChampion = (championName: string) => {
     // Marca interação do usuário
@@ -435,14 +487,14 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
   };
 
   // Handlers de touch (mobile) - sistema de toque-toque
-  const handleChampionClick = (championName: string) => {
+  const handleChampionClick = (championName: string, tier?: Tier) => {
     // Se já tem um campeão selecionado e é o mesmo, deseleciona
     if (selectedChampion === championName) {
       setSelectedChampion(null);
       return;
     }
     
-    // Seleciona o campeão
+    // Seleciona o campeão (funciona mesmo se já estiver em um tier)
     setSelectedChampion(championName);
     isUserInteractingRef.current = true;
     lastInteractionTimeRef.current = Date.now();
@@ -453,10 +505,94 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
     if (selectedChampion) {
       moveChampion(selectedChampion, targetTier);
       setSelectedChampion(null);
-      setTimeout(() => {
-        isUserInteractingRef.current = false;
-      }, 2000);
+      // Não reseta isUserInteractingRef aqui - deixa o moveChampion e o saveToServer gerenciarem
     }
+  };
+
+  // Handler de touch start para mobile (detecta long press e arrasto horizontal)
+  const handleChampionTouchStart = (e: React.TouchEvent, championName: string, tier: Tier) => {
+    if (!isMobile) return;
+    
+    const touch = e.touches[0];
+    setTouchStartPos({ x: touch.clientX, y: touch.clientY, champion: championName, tier });
+    
+    // Long press para remover (500ms)
+    const timer = setTimeout(() => {
+      removeChampion(championName);
+      setTouchStartPos(null);
+      setSelectedChampion(null);
+    }, 500);
+    
+    setLongPressTimer(timer);
+  };
+
+  // Handler de touch move para mobile (detecta arrasto horizontal para trocar posição)
+  const handleChampionTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !touchStartPos) return;
+    
+    e.preventDefault(); // Previne scroll durante arrasto
+    
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    
+    // Se moveu mais de 10px em qualquer direção, cancela long press
+    if (deltaX > 10 || deltaY > 10) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+    }
+  };
+
+  // Handler de touch end para mobile (troca posição se arrastou horizontalmente)
+  const handleChampionTouchEnd = (e: React.TouchEvent, championName: string, tier: Tier) => {
+    if (!isMobile) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+      return;
+    }
+    
+    // Cancela long press se ainda estiver ativo
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    
+    if (!touchStartPos) {
+      // Se não tinha touchStartPos, pode ser um click simples
+      handleChampionClick(championName, tier);
+      return;
+    }
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartPos.x;
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    
+    // Se moveu horizontalmente mais de 40px e verticalmente menos de 30px, troca posição
+    if (Math.abs(deltaX) > 40 && deltaY < 30) {
+      const currentTier = poolData[activeRole]?.[tier] || [];
+      const currentIndex = currentTier.indexOf(championName);
+      
+      if (currentIndex !== -1) {
+        // Determina direção do arrasto
+        const direction = deltaX > 0 ? 1 : -1;
+        const targetIndex = currentIndex + direction;
+        
+        // Verifica se há um campeão na posição alvo
+        if (targetIndex >= 0 && targetIndex < currentTier.length) {
+          const targetChampion = currentTier[targetIndex];
+          swapChampionsInTier(tier, championName, targetChampion);
+        }
+      }
+    } else if (Math.abs(deltaX) < 10 && deltaY < 10) {
+      // Se não moveu muito, trata como click normal (seleciona)
+      handleChampionClick(championName, tier);
+    }
+    
+    setTouchStartPos(null);
   };
 
   // Normaliza currentPool para garantir que todas as tiers existam
@@ -647,11 +783,21 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                     return (
                       <div
                         key={stableKey}
-                        draggable
-                        onDragStart={() => handleDragStart(champion, tier)}
+                        draggable={!isMobile}
+                        onDragStart={() => !isMobile && handleDragStart(champion, tier)}
                         onDragEnd={handleDragEnd}
-                        onClick={() => handleChampionClick(champion)}
-                        className={`group relative aspect-square rounded overflow-hidden border transition-all duration-300 hover:scale-110 cursor-pointer ${
+                        onClick={(e) => {
+                          // No desktop, usa click normal
+                          if (!isMobile) {
+                            handleChampionClick(champion, tier);
+                          }
+                        }}
+                        onTouchStart={(e) => isMobile && handleChampionTouchStart(e, champion, tier)}
+                        onTouchMove={(e) => isMobile && handleChampionTouchMove(e)}
+                        onTouchEnd={(e) => isMobile && handleChampionTouchEnd(e, champion, tier)}
+                        className={`group relative aspect-square rounded overflow-hidden border transition-all duration-300 hover:scale-110 ${
+                          isMobile ? 'cursor-pointer touch-none' : 'cursor-move'
+                        } ${
                           selectedChampion === champion
                             ? 'border-pedreiro-purple border-2 scale-110 ring-2 ring-pedreiro-purple/50'
                             : 'border-white/10 hover:border-pedreiro-purple/50'
