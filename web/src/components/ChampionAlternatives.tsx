@@ -41,7 +41,7 @@ export function ChampionAlternatives({ champion, version, roleColor, roleLabel }
 
       {/* Alternatives Tooltip */}
       {champion.alternatives && champion.alternatives.length > 0 && showAlternatives && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-xl border border-white/10 backdrop-blur-sm z-50 pointer-events-none">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-xl border border-white/10 backdrop-blur-sm z-50 pointer-events-none">
           <p className="font-bold text-white text-sm mb-3">Alternativas:</p>
           <div className="space-y-2">
             {champion.alternatives.map((alt, idx) => (
@@ -58,7 +58,7 @@ export function ChampionAlternatives({ champion, version, roleColor, roleLabel }
               </div>
             ))}
           </div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
         </div>
       )}
     </div>
