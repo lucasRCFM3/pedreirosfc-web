@@ -128,20 +128,12 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
   const member = TEAM_MEMBERS[roleKey];
   const Icon = ICONS[roleKey];
 
-  // IMPORTANTE: Sempre busca TODAS as partidas (sem filtro)
-  // O filtro será aplicado no cliente ou localmente
-  // Isso garante que mudar filtros não faz novas requisições
-  const data = await getPlayerStats(member.gameName, member.tagLine, undefined, false, roleKey);
+  // Busca as últimas 10 partidas já filtradas pelo tipo
+  let queueId: number | undefined;
+  if (filter === 'solo') queueId = 420;
+  if (filter === 'flex') queueId = 440;
   
-  // Aplica filtro localmente se necessário
-  let filteredData = data;
-  if (data && filter !== 'all') {
-    const queueId = filter === 'solo' ? 420 : 440;
-    filteredData = {
-      ...data,
-      matches: data.matches.filter(m => m.queueId === queueId)
-    };
-  }
+  const data = await getPlayerStats(member.gameName, member.tagLine, queueId, false, roleKey);
 
   // Salva timestamp da última atualização para o botão de quick update
   // Isso será usado no cliente para calcular quando bloquear o botão
@@ -149,10 +141,10 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
   const isSupport = roleKey === 'support';
   const avgGameDurationMin = data && data.avgDuration && data.avgDuration > 0 ? data.avgDuration / 60 : 30;
   
-  const avgCsPerMin = filteredData && filteredData.avgCs && avgGameDurationMin > 0 ? Number(filteredData.avgCs) / avgGameDurationMin : 0;
-  const avgVisionPerMin = filteredData && filteredData.avgVision && avgGameDurationMin > 0 ? Number(filteredData.avgVision) / avgGameDurationMin : 0;
-  const winRate = filteredData && filteredData.matches && filteredData.matches.length > 0 ? (filteredData.matches.filter(m => m.win).length / filteredData.matches.length) * 100 : 0;
-  const avgKillParticipation = filteredData && filteredData.avgKillParticipation ? filteredData.avgKillParticipation : 0;
+  const avgCsPerMin = data && data.avgCs && avgGameDurationMin > 0 ? Number(data.avgCs) / avgGameDurationMin : 0;
+  const avgVisionPerMin = data && data.avgVision && avgGameDurationMin > 0 ? Number(data.avgVision) / avgGameDurationMin : 0;
+  const winRate = data && data.matches && data.matches.length > 0 ? (data.matches.filter(m => m.win).length / data.matches.length) * 100 : 0;
+  const avgKillParticipation = data && data.avgKillParticipation ? data.avgKillParticipation : 0;
 
   const headerMetricColor = isSupport 
       ? getVisionColor(avgVisionPerMin, roleKey)
@@ -191,7 +183,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
         </div>
 
         {/* Stats Overview */}
-        {filteredData && (
+        {data && (
             <div className={`grid grid-cols-2 ${isSupport ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4 mb-12 overflow-visible`}>
                 <div className="group relative bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl p-5 border border-white/10 hover:border-white/20 transition-all duration-300 hover:shadow-lg hover:shadow-black/20">
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -201,9 +193,9 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                             {winRate.toFixed(0)}%
                         </p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                            <span className="font-medium">{filteredData.matches.filter(m => m.win).length}W</span>
+                            <span className="font-medium">{data.matches.filter(m => m.win).length}W</span>
                             <span className="text-gray-600">•</span>
-                            <span className="font-medium">{filteredData.matches.filter(m => !m.win).length}L</span>
+                            <span className="font-medium">{data.matches.filter(m => !m.win).length}L</span>
                         </div>
                     </div>
                 </div>
@@ -235,7 +227,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                             >
                                 <div className="cursor-help">
                                     <p className={`text-4xl font-black tabular-nums mb-1 ${getCsColor(avgCsPerMin, roleKey)}`}>
-                                        {filteredData.avgCs}
+                                        {data.avgCs}
                                     </p>
                                     <p className={`text-sm font-semibold ${getCsColor(avgCsPerMin, roleKey)} opacity-80`}>
                                         {avgCsPerMin.toFixed(1)} cs/min
@@ -257,7 +249,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         >
                             <div className="cursor-help">
                                 <p className={`text-4xl font-black tabular-nums mb-1 ${getVisionColor(avgVisionPerMin, roleKey)}`}>
-                                    {filteredData.avgVision}
+                                    {data.avgVision}
                                 </p>
                                 <p className={`text-sm font-semibold ${getVisionColor(avgVisionPerMin, roleKey)} opacity-80`}>
                                     {avgVisionPerMin.toFixed(1)} vis/min
@@ -296,21 +288,21 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
         </div>
 
         {/* Match List */}
-        {!filteredData ? (
+        {!data ? (
             <div className="p-12 border border-white/5 bg-white/5 rounded-3xl text-center backdrop-blur-sm">
                 <p className="text-gray-400">Carregando dados ou jogador não encontrado...</p>
             </div>
-        ) : filteredData.matches.length === 0 ? (
+        ) : data.matches.length === 0 ? (
             <div className="p-12 border border-white/5 bg-white/5 rounded-3xl text-center backdrop-blur-sm">
                 <p className="text-gray-400">
-                    {filter === 'solo' ? 'Nenhuma partida Solo/Duo encontrada nas últimas 10 partidas.' :
-                     filter === 'flex' ? 'Nenhuma partida Flex encontrada nas últimas 10 partidas.' :
+                    {filter === 'solo' ? 'Nenhuma partida Solo/Duo encontrada.' :
+                     filter === 'flex' ? 'Nenhuma partida Flex encontrada.' :
                      'Nenhuma partida encontrada.'}
                 </p>
             </div>
         ) : (
             <div className="flex flex-col gap-3">
-                {filteredData.matches.map((match) => {
+                {data.matches.map((match) => {
                     const isWin = match.win;
                     const kills = match.kills || 0;
                     const deaths = match.deaths || 0;
@@ -409,7 +401,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
 
       {/* Sidebar Right */}
       <div className="w-full lg:w-80 order-1 lg:order-2">
-          {filteredData && (
+          {data && (
               <div className="sticky top-8">
                   <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                       <Trophy className="w-5 h-5 text-yellow-500" />
@@ -418,7 +410,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                   </h3>
 
                   <div className="space-y-4">
-                      {filteredData.topChampions.map((champ) => {
+                      {data.topChampions.map((champ) => {
                           const winRateNum = champ.winRate ? Number(champ.winRate) : 0;
                           const kdaNum = champ.kda ? Number(champ.kda) : 0;
                           const games = champ.total || 0;
@@ -461,7 +453,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                           );
                       })}
 
-                      {filteredData.topChampions.length === 0 && (
+                      {data.topChampions.length === 0 && (
                           <p className="text-sm text-gray-500 italic">Nenhum dado suficiente para top campeões.</p>
                       )}
                   </div>

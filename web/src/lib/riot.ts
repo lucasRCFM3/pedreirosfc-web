@@ -100,13 +100,13 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
 }
 
 export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
-  // IMPORTANTE: Sempre usa cache em memória primeiro (independente de queueId)
-  // Isso garante que mudar filtros não faz novas requisições
-  const cacheKey = `${puuid}_all`;
+  // Cache key inclui queueId para cache separado por filtro
+  const cacheKey = queueId ? `${puuid}_${queueId}` : `${puuid}_all`;
+  
   if (!forceRefresh) {
     const cached = matchIdsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < MATCH_IDS_CACHE_TTL) {
-      console.log(`[CACHE] Usando IDs de partidas do cache para ${puuid}`);
+      console.log(`[CACHE] Usando IDs de partidas do cache para ${puuid} (queueId: ${queueId || 'all'})`);
       return cached.ids.slice(0, count);
     }
   }
@@ -116,12 +116,12 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queu
     matchIdsCache.delete(cacheKey);
   }
   
-  // IMPORTANTE: Sempre busca TODAS as partidas (sem filtro de queueId)
-  // O filtro será aplicado depois localmente
+  // Busca partidas já filtradas pelo queueId se fornecido
   let url = `https://${REGION_AMERICAS}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
   
-  // Ignora queueId aqui - sempre busca todas para cache compartilhado
-  if (type) {
+  if (queueId) {
+      url += `&queue=${queueId}`;
+  } else if (type) {
       url += `&type=${type}`;
   }
   
@@ -138,9 +138,9 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queu
     }
     const ids = await res.json();
     
-    // Salva no cache em memória (sempre, para reutilizar entre filtros)
+    // Salva no cache em memória (com chave específica por filtro)
     matchIdsCache.set(cacheKey, { ids, timestamp: Date.now() });
-    console.log(`[CACHE] IDs de partidas salvos no cache para ${puuid} (${ids.length} partidas)`);
+    console.log(`[CACHE] IDs de partidas salvos no cache para ${puuid} (queueId: ${queueId || 'all'}, ${ids.length} partidas)`);
     
     return ids;
   } catch (error) {
@@ -241,7 +241,7 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
   // OTIMIZAÇÃO: Sempre busca TODAS as partidas (sem filtro de queueId)
   // Filtra localmente depois - evita múltiplas requisições ao mudar filtros
   const [matchIds, version] = await Promise.all([
-      getMatchIdsByPuuid(account.puuid, 10, undefined, "ranked", forceRefresh), // Sempre busca todas
+      getMatchIdsByPuuid(account.puuid, 10, queueId, "ranked", forceRefresh), // Busca já filtrado pelo queueId
       getLatestDDVersion()
   ]);
   
@@ -281,7 +281,7 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
     ? matches.filter(match => match.info.queueId === queueId)
     : matches;
 
-  const stats = filteredMatches.map(match => {
+  const stats = matches.map(match => {
     const participant = match.info.participants.find(p => p.puuid === account.puuid);
     if (!participant) return null;
 
@@ -425,8 +425,9 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   }
 
   // OTIMIZAÇÃO: Busca apenas a última partida (count=1) - apenas 1 requisição
-  console.log(`[QUICK UPDATE] Verificando última partida para ${gameName}#${tagLine}`);
-  const latestMatchIds = await getMatchIdsByPuuid(account.puuid, 1, undefined, "ranked", false);
+  // Usa o queueId se fornecido para verificar apenas partidas do tipo correto
+  console.log(`[QUICK UPDATE] Verificando última partida para ${gameName}#${tagLine} (queueId: ${queueId || 'all'})`);
+  const latestMatchIds = await getMatchIdsByPuuid(account.puuid, 1, queueId, "ranked", false);
   
   if (!latestMatchIds || latestMatchIds.length === 0) {
     return null;
@@ -455,11 +456,11 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   lastMatchCache.set(cacheKey, { matchId: latestMatchId, timestamp: Date.now() });
 
   // Busca os dados existentes do cache (sem fazer novas requisições)
-  // Se não tiver cache, busca todas (mas isso só acontece na primeira vez)
-  const existingData = await getPlayerStats(gameName, tagLine, undefined, false, role);
+  // Usa o mesmo queueId para manter consistência com o filtro
+  const existingData = await getPlayerStats(gameName, tagLine, queueId, false, role);
   
   if (!existingData) {
-    // Se não tem dados existentes, busca todas (primeira vez)
+    // Se não tem dados existentes, busca novamente (primeira vez)
     return await getPlayerStats(gameName, tagLine, queueId, false, role);
   }
 
