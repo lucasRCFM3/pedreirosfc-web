@@ -80,6 +80,15 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
 }
 
 export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queueId?: number, type: string = "ranked"): Promise<string[]> {
+  // Se não tem queueId, usa cache em memória (otimização para filtros)
+  if (!queueId) {
+    const cacheKey = `${puuid}_all`;
+    const cached = matchIdsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < MATCH_IDS_CACHE_TTL) {
+      return cached.ids.slice(0, count);
+    }
+  }
+  
   let url = `https://${REGION_AMERICAS}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
   
   if (queueId) {
@@ -92,7 +101,15 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
     // Cache de 15 minutos - reduz requisições à API
     const res = await fetch(url, { headers, next: { revalidate: 900 } });
     if (!res.ok) return [];
-    return await res.json();
+    const ids = await res.json();
+    
+    // Salva no cache em memória se não tem queueId (para reutilizar entre filtros)
+    if (!queueId) {
+      const cacheKey = `${puuid}_all`;
+      matchIdsCache.set(cacheKey, { ids, timestamp: Date.now() });
+    }
+    
+    return ids;
   } catch (error) {
     return [];
   }
@@ -100,7 +117,11 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
 
 // Cache em memória para partidas já carregadas (melhora navegação)
 const matchCache = new Map<string, { data: MatchInfo; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutos (aumentado para melhor performance entre filtros)
+
+// Cache para IDs de partidas por PUUID (evita buscar IDs novamente ao mudar filtros)
+const matchIdsCache = new Map<string, { ids: string[]; timestamp: number }>();
+const MATCH_IDS_CACHE_TTL = 15 * 60 * 1000; // 15 minutos
 
 export async function getMatchDetails(matchId: string, forceRefresh: boolean = false, retries: number = 2): Promise<MatchInfo | null> {
   // Verifica cache em memória primeiro (mais rápido)
@@ -177,8 +198,10 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
   const account = await getAccountByRiotId(gameName, tagLine);
   if (!account) return null;
 
+  // OTIMIZAÇÃO: Sempre busca TODAS as partidas (sem filtro de queueId)
+  // Filtra localmente depois - evita múltiplas requisições ao mudar filtros
   const [matchIds, version] = await Promise.all([
-      getMatchIdsByPuuid(account.puuid, 20, queueId),
+      getMatchIdsByPuuid(account.puuid, 20, undefined), // Sempre busca todas
       getLatestDDVersion()
   ]);
   
@@ -186,7 +209,12 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
   // Development key: 100 req/2min, então fazemos batches de 5 com delay
   const matches = await getMatchDetailsInBatches(matchIds, forceRefresh);
 
-  const stats = matches.map(match => {
+  // Filtra localmente por queueId se especificado
+  const filteredMatches = queueId 
+    ? matches.filter(match => match.info.queueId === queueId)
+    : matches;
+
+  const stats = filteredMatches.map(match => {
     const participant = match.info.participants.find(p => p.puuid === account.puuid);
     if (!participant) return null;
 
