@@ -102,7 +102,7 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
 const matchCache = new Map<string, { data: MatchInfo; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
-export async function getMatchDetails(matchId: string, forceRefresh: boolean = false): Promise<MatchInfo | null> {
+export async function getMatchDetails(matchId: string, forceRefresh: boolean = false, retries: number = 2): Promise<MatchInfo | null> {
   // Verifica cache em memória primeiro (mais rápido)
   if (!forceRefresh) {
     const cached = matchCache.get(matchId);
@@ -120,8 +120,19 @@ export async function getMatchDetails(matchId: string, forceRefresh: boolean = f
       next: forceRefresh ? { revalidate: 0 } : { revalidate: 86400 }
     });
     
+    // Rate limit: aguarda e tenta novamente
     if (res.status === 429) {
-        return null;
+      const retryAfter = res.headers.get('Retry-After');
+      const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000; // 2 segundos padrão
+      
+      if (retries > 0) {
+        console.warn(`[API] Rate limit atingido para ${matchId}, aguardando ${waitTime}ms...`);
+        await delay(waitTime);
+        return getMatchDetails(matchId, forceRefresh, retries - 1);
+      }
+      
+      console.error(`[API] Rate limit atingido para ${matchId} após ${retries} tentativas`);
+      return null;
     }
 
     if (!res.ok) return null;
@@ -136,6 +147,32 @@ export async function getMatchDetails(matchId: string, forceRefresh: boolean = f
   }
 }
 
+// Rate limiting: processa partidas em batches para evitar estourar o limite da API
+async function getMatchDetailsInBatches(matchIds: string[], forceRefresh: boolean = false): Promise<MatchInfo[]> {
+  const BATCH_SIZE = 5; // Processa 5 partidas por vez
+  const DELAY_BETWEEN_BATCHES = 200; // 200ms entre batches (respeita 20 req/s)
+  const matches: MatchInfo[] = [];
+
+  for (let i = 0; i < matchIds.length; i += BATCH_SIZE) {
+    const batch = matchIds.slice(i, i + BATCH_SIZE);
+    
+    // Processa o batch em paralelo
+    const batchPromises = batch.map(id => getMatchDetails(id, forceRefresh));
+    const batchResults = await Promise.all(batchPromises);
+    
+    // Filtra resultados válidos
+    const validMatches = batchResults.filter((m): m is MatchInfo => m !== null);
+    matches.push(...validMatches);
+    
+    // Aguarda antes do próximo batch (exceto no último)
+    if (i + BATCH_SIZE < matchIds.length) {
+      await delay(DELAY_BETWEEN_BATCHES);
+    }
+  }
+
+  return matches;
+}
+
 export async function getPlayerStats(gameName: string, tagLine: string, queueId?: number, forceRefresh: boolean = false, role?: string) {
   const account = await getAccountByRiotId(gameName, tagLine);
   if (!account) return null;
@@ -145,11 +182,9 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
       getLatestDDVersion()
   ]);
   
-  // Otimização máxima: busca todas as 20 partidas em paralelo de uma vez
-  // API permite 20 req/s, então podemos fazer tudo simultaneamente
-  const matchPromises = matchIds.map(id => getMatchDetails(id, forceRefresh));
-  const matchResults = await Promise.all(matchPromises);
-  const matches = matchResults.filter((m): m is MatchInfo => m !== null);
+  // Processa partidas em batches para respeitar rate limit da API
+  // Development key: 100 req/2min, então fazemos batches de 5 com delay
+  const matches = await getMatchDetailsInBatches(matchIds, forceRefresh);
 
   const stats = matches.map(match => {
     const participant = match.info.participants.find(p => p.puuid === account.puuid);

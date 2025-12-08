@@ -74,11 +74,11 @@ export function RefreshButton({ role, filter }: RefreshButtonProps) {
       const data = await res.json();
 
       if (res.status === 429) {
-        const remaining = data.cooldown || 60;
+        const remaining = data.cooldown || 120;
         setCooldown(remaining);
         alert(data.error || "Aguarde antes de atualizar novamente.");
       } else if (res.ok) {
-        setCooldown(60);
+        setCooldown(120);
         router.refresh();
       } else {
         alert(data.error || "Erro ao atualizar dados.");

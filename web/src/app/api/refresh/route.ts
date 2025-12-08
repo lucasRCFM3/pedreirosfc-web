@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPlayerStats } from "@/lib/riot";
 import { TEAM_MEMBERS, Role } from "@/config/team";
 
-// Cooldown de 60 segundos por jogador
+// Cooldown de 120 segundos por jogador (aumentado para evitar rate limit)
 const cooldowns = new Map<string, number>();
 
 export async function POST(request: NextRequest) {
@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
     const lastRefresh = cooldowns.get(role) || 0;
     const timeSinceLastRefresh = (now - lastRefresh) / 1000;
 
-    if (timeSinceLastRefresh < 60) {
-      const remaining = Math.ceil(60 - timeSinceLastRefresh);
+    if (timeSinceLastRefresh < 120) {
+      const remaining = Math.ceil(120 - timeSinceLastRefresh);
       return NextResponse.json(
         { error: `Aguarde ${remaining} segundos antes de atualizar novamente.`, cooldown: remaining },
         { status: 429 }
