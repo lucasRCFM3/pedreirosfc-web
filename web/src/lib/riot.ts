@@ -136,6 +136,9 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutos (aumentado para melhor performan
 const matchIdsCache = new Map<string, { ids: string[]; timestamp: number }>();
 const MATCH_IDS_CACHE_TTL = 15 * 60 * 1000; // 15 minutos
 
+// Cache para última partida conhecida (para verificar se há novas partidas)
+const lastMatchCache = new Map<string, { matchId: string; timestamp: number }>();
+
 export async function getMatchDetails(matchId: string, forceRefresh: boolean = false, retries: number = 2): Promise<MatchInfo | null> {
   // Verifica cache em memória primeiro (mais rápido)
   if (!forceRefresh) {
@@ -374,6 +377,13 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
       })
       .slice(0, 5);
 
+  // Salva a última partida conhecida no cache
+  if (stats.length > 0) {
+    const lastMatch = stats[0]; // Primeira é a mais recente
+    const cacheKey = `${account.puuid}_last`;
+    lastMatchCache.set(cacheKey, { matchId: lastMatch.matchId, timestamp: Date.now() });
+  }
+
   return {
     account,
     matches: stats,
@@ -383,4 +393,48 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
     avgKillParticipation,
     topChampions
   };
+}
+
+// Função para verificar apenas a última partida (otimizada para update rápido)
+export async function checkLatestMatch(gameName: string, tagLine: string, queueId?: number, role?: string) {
+  const account = await getAccountByRiotId(gameName, tagLine);
+  if (!account) {
+    console.error(`[API] Conta não encontrada: ${gameName}#${tagLine}`);
+    return null;
+  }
+
+  // Busca apenas a última partida (count=1) - sem cache para sempre pegar a mais recente
+  const latestMatchIds = await getMatchIdsByPuuid(account.puuid, 1, undefined, "ranked", false);
+  
+  if (!latestMatchIds || latestMatchIds.length === 0) {
+    return null;
+  }
+
+  const latestMatchId = latestMatchIds[0];
+  const cacheKey = `${account.puuid}_last`;
+  const cachedLastMatch = lastMatchCache.get(cacheKey);
+
+  // Se a última partida é a mesma que já temos, não precisa atualizar
+  if (cachedLastMatch && cachedLastMatch.matchId === latestMatchId) {
+    console.log(`[API] Nenhuma partida nova para ${gameName}#${tagLine}`);
+    return { hasNewMatch: false, matchId: latestMatchId };
+  }
+
+  // Limpa o cache de IDs para forçar busca atualizada
+  const idsCacheKey = `${account.puuid}_all`;
+  matchIdsCache.delete(idsCacheKey);
+
+  // Busca todas as partidas atualizadas (com a nova)
+  const updatedData = await getPlayerStats(gameName, tagLine, queueId, true, role);
+  
+  if (!updatedData) {
+    return null;
+  }
+
+  // Atualiza o cache da última partida
+  if (updatedData.matches && updatedData.matches.length > 0) {
+    lastMatchCache.set(cacheKey, { matchId: updatedData.matches[0].matchId, timestamp: Date.now() });
+  }
+
+  return updatedData;
 }

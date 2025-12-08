@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { Sword, TreeDeciduous, Zap, Crosshair, Heart, Clock, Trophy, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { RefreshButton } from "@/components/RefreshButton";
 import { Tooltip, FarmTooltip, VisionTooltip, KillParticipationTooltip } from "@/components/Tooltip";
+import { QuickUpdateButton } from "@/components/QuickUpdateButton";
 
 const ROLE_MAP: Record<string, Role> = {
   "top": "top",
@@ -134,6 +134,9 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
 
   const data = await getPlayerStats(member.gameName, member.tagLine, queueId, false, roleKey);
 
+  // Salva timestamp da última atualização para o botão de quick update
+  // Isso será usado no cliente para calcular quando bloquear o botão
+
   const isSupport = roleKey === 'support';
   const avgGameDurationMin = data && data.avgDuration && data.avgDuration > 0 ? data.avgDuration / 60 : 30;
   
@@ -172,9 +175,9 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                 </div>
             </div>
             
-            {/* Refresh Button */}
+            {/* Quick Update Button */}
             <div className="flex items-end">
-                <RefreshButton role={roleKey} filter={filter} />
+                <QuickUpdateButton role={roleKey} filter={filter} />
             </div>
         </div>
 
