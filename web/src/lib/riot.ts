@@ -99,7 +99,7 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
   }
 }
 
-export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
+export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
   // IMPORTANTE: Sempre usa cache em memória primeiro (independente de queueId)
   // Isso garante que mudar filtros não faz novas requisições
   const cacheKey = `${puuid}_all`;
@@ -241,7 +241,7 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
   // OTIMIZAÇÃO: Sempre busca TODAS as partidas (sem filtro de queueId)
   // Filtra localmente depois - evita múltiplas requisições ao mudar filtros
   const [matchIds, version] = await Promise.all([
-      getMatchIdsByPuuid(account.puuid, 20, undefined, "ranked", forceRefresh), // Sempre busca todas
+      getMatchIdsByPuuid(account.puuid, 10, undefined, "ranked", forceRefresh), // Sempre busca todas
       getLatestDDVersion()
   ]);
   
@@ -512,8 +512,8 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
     participant
   };
 
-  // Adiciona a nova partida no início e mantém apenas as 20 mais recentes
-  const updatedMatches = [newMatchData, ...existingData.matches].slice(0, 20);
+  // Adiciona a nova partida no início e mantém apenas as 10 mais recentes
+  const updatedMatches = [newMatchData, ...existingData.matches].slice(0, 10);
 
   // Recalcula estatísticas
   const totalCs = updatedMatches.reduce((acc, curr) => acc + (curr?.cs || 0), 0);

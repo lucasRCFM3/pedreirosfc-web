@@ -220,7 +220,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                                 {avgKillParticipation.toFixed(1)}%
                             </p>
                         </Tooltip>
-                        <p className="text-xs text-gray-500 font-medium">Last 20 games</p>
+                        <p className="text-xs text-gray-500 font-medium">Last 10 games</p>
                     </div>
                 </div>
 
@@ -242,7 +242,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                                     </p>
                                 </div>
                             </Tooltip>
-                            <p className="text-xs text-gray-500 font-medium mt-2">Last 20 games</p>
+                            <p className="text-xs text-gray-500 font-medium mt-2">Last 10 games</p>
                         </div>
                     </div>
                 )}
@@ -303,8 +303,8 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
         ) : filteredData.matches.length === 0 ? (
             <div className="p-12 border border-white/5 bg-white/5 rounded-3xl text-center backdrop-blur-sm">
                 <p className="text-gray-400">
-                    {filter === 'solo' ? 'Nenhuma partida Solo/Duo encontrada nas últimas 20 partidas.' :
-                     filter === 'flex' ? 'Nenhuma partida Flex encontrada nas últimas 20 partidas.' :
+                    {filter === 'solo' ? 'Nenhuma partida Solo/Duo encontrada nas últimas 10 partidas.' :
+                     filter === 'flex' ? 'Nenhuma partida Flex encontrada nas últimas 10 partidas.' :
                      'Nenhuma partida encontrada.'}
                 </p>
             </div>
@@ -414,7 +414,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                   <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                       <Trophy className="w-5 h-5 text-yellow-500" />
                       Top Campeões
-                      <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-1 rounded ml-auto">20 games</span>
+                      <span className="text-xs font-normal text-gray-500 bg-white/5 px-2 py-1 rounded ml-auto">10 games</span>
                   </h3>
 
                   <div className="space-y-4">
