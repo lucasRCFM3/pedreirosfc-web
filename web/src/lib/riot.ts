@@ -64,7 +64,20 @@ export async function getLatestDDVersion(): Promise<string> {
     }
 }
 
+// Cache de contas para evitar buscar o mesmo jogador múltiplas vezes
+const accountCache = new Map<string, { account: RiotAccount; timestamp: number }>();
+const ACCOUNT_CACHE_TTL = 15 * 60 * 1000; // 15 minutos
+
 export async function getAccountByRiotId(gameName: string, tagLine: string): Promise<RiotAccount | null> {
+  const cacheKey = `${gameName}#${tagLine}`;
+  
+  // Verifica cache primeiro
+  const cached = accountCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < ACCOUNT_CACHE_TTL) {
+    console.log(`[CACHE] Usando conta do cache para ${cacheKey}`);
+    return cached.account;
+  }
+
   const url = `https://${REGION_AMERICAS}/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`;
   
   try {
@@ -74,7 +87,12 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
         console.error(`[API] Account not found: ${gameName}#${tagLine} (${res.status})`);
         return null;
     }
-    return await res.json();
+    const account = await res.json();
+    
+    // Salva no cache
+    accountCache.set(cacheKey, { account, timestamp: Date.now() });
+    
+    return account;
   } catch (error) {
     console.error(`[API] Error fetching account ${gameName}#${tagLine}:`, error);
     return null;
@@ -406,7 +424,8 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
     return null;
   }
 
-  // Busca apenas a última partida (count=1) - sem cache para sempre pegar a mais recente
+  // OTIMIZAÇÃO: Busca apenas a última partida (count=1) - apenas 1 requisição
+  console.log(`[QUICK UPDATE] Verificando última partida para ${gameName}#${tagLine}`);
   const latestMatchIds = await getMatchIdsByPuuid(account.puuid, 1, undefined, "ranked", false);
   
   if (!latestMatchIds || latestMatchIds.length === 0) {
@@ -419,25 +438,135 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
 
   // Se a última partida é a mesma que já temos, não precisa atualizar
   if (cachedLastMatch && cachedLastMatch.matchId === latestMatchId) {
-    console.log(`[API] Nenhuma partida nova para ${gameName}#${tagLine}`);
+    console.log(`[QUICK UPDATE] Nenhuma partida nova para ${gameName}#${tagLine}`);
     return { hasNewMatch: false, matchId: latestMatchId };
   }
 
-  // Limpa o cache de IDs para forçar busca atualizada
-  const idsCacheKey = `${account.puuid}_all`;
-  matchIdsCache.delete(idsCacheKey);
-
-  // Busca todas as partidas atualizadas (com a nova)
-  const updatedData = await getPlayerStats(gameName, tagLine, queueId, true, role);
+  console.log(`[QUICK UPDATE] Nova partida encontrada: ${latestMatchId}`);
   
-  if (!updatedData) {
+  // OTIMIZAÇÃO: Busca apenas a nova partida (1 requisição) ao invés de todas
+  const newMatch = await getMatchDetails(latestMatchId, true);
+  if (!newMatch) {
+    console.error(`[QUICK UPDATE] Erro ao buscar detalhes da nova partida ${latestMatchId}`);
     return null;
   }
 
   // Atualiza o cache da última partida
-  if (updatedData.matches && updatedData.matches.length > 0) {
-    lastMatchCache.set(cacheKey, { matchId: updatedData.matches[0].matchId, timestamp: Date.now() });
+  lastMatchCache.set(cacheKey, { matchId: latestMatchId, timestamp: Date.now() });
+
+  // Busca os dados existentes do cache (sem fazer novas requisições)
+  // Se não tiver cache, busca todas (mas isso só acontece na primeira vez)
+  const existingData = await getPlayerStats(gameName, tagLine, undefined, false, role);
+  
+  if (!existingData) {
+    // Se não tem dados existentes, busca todas (primeira vez)
+    return await getPlayerStats(gameName, tagLine, queueId, false, role);
   }
 
-  return updatedData;
+  // Verifica se a nova partida já está na lista (pode acontecer se o cache foi atualizado)
+  const alreadyExists = existingData.matches.some(m => m.matchId === latestMatchId);
+  if (alreadyExists) {
+    console.log(`[QUICK UPDATE] Partida ${latestMatchId} já está nos dados existentes`);
+    // Aplica filtro se necessário
+    if (queueId) {
+      return {
+        ...existingData,
+        matches: existingData.matches.filter(m => m.queueId === queueId)
+      };
+    }
+    return existingData;
+  }
+
+  // Adiciona a nova partida no início da lista
+  const version = await getLatestDDVersion();
+  const participant = newMatch.info.participants.find(p => p.puuid === account.puuid);
+  
+  if (!participant) {
+    console.error(`[QUICK UPDATE] Participante não encontrado na nova partida`);
+    return existingData;
+  }
+
+  const cs = participant.totalMinionsKilled + participant.neutralMinionsKilled;
+  const teamId = participant.teamId;
+  const teamParticipants = newMatch.info.participants.filter(p => p.teamId === teamId);
+  const teamTotalKills = teamParticipants.reduce((sum, p) => sum + p.kills, 0);
+  const killParticipation = teamTotalKills > 0 
+    ? ((participant.kills + participant.assists) / teamTotalKills * 100) 
+    : 0;
+
+  const newMatchData = {
+    matchId: newMatch.metadata.matchId,
+    queueId: newMatch.info.queueId,
+    champion: participant.championName,
+    championImageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${participant.championName}.png`,
+    win: participant.win,
+    kills: participant.kills,
+    deaths: participant.deaths,
+    assists: participant.assists,
+    kda: `${participant.kills}/${participant.deaths}/${participant.assists}`,
+    cs,
+    visionScore: participant.visionScore,
+    gameDuration: newMatch.info.gameDuration,
+    gameCreation: newMatch.info.gameCreation,
+    killParticipation,
+    participant
+  };
+
+  // Adiciona a nova partida no início e mantém apenas as 20 mais recentes
+  const updatedMatches = [newMatchData, ...existingData.matches].slice(0, 20);
+
+  // Recalcula estatísticas
+  const totalCs = updatedMatches.reduce((acc, curr) => acc + (curr?.cs || 0), 0);
+  const avgCs = updatedMatches.length > 0 ? (totalCs / updatedMatches.length).toFixed(1) : "0";
+  const totalVision = updatedMatches.reduce((acc, curr) => acc + (curr?.visionScore || 0), 0);
+  const avgVision = updatedMatches.length > 0 ? (totalVision / updatedMatches.length).toFixed(1) : "0";
+  const totalDuration = updatedMatches.reduce((acc, curr) => acc + (curr?.gameDuration || 0), 0);
+  const avgDuration = updatedMatches.length > 0 ? totalDuration / updatedMatches.length : 0;
+  const totalKillParticipation = updatedMatches.reduce((acc, curr) => acc + (curr?.killParticipation || 0), 0);
+  const avgKillParticipation = updatedMatches.length > 0 ? totalKillParticipation / updatedMatches.length : 0;
+
+  // Recalcula top champions (código simplificado)
+  const champStats: Record<string, { name: string, wins: number, total: number, kills: number, deaths: number, assists: number }> = {};
+  updatedMatches.forEach(match => {
+    const name = match.champion;
+    if (!champStats[name]) {
+      champStats[name] = { name, wins: 0, total: 0, kills: 0, deaths: 0, assists: 0 };
+    }
+    champStats[name].total += 1;
+    if (match.win) champStats[name].wins += 1;
+    champStats[name].kills += match.kills;
+    champStats[name].deaths += match.deaths;
+    champStats[name].assists += match.assists;
+  });
+
+  const topChampions = Object.values(champStats)
+    .map(c => {
+      const winRate = (c.wins / c.total) * 100;
+      const kda = c.deaths === 0 ? (c.kills + c.assists) : ((c.kills + c.assists) / c.deaths);
+      return {
+        ...c,
+        winRate: winRate.toFixed(0),
+        kda: kda.toFixed(2),
+        imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${c.name}.png`
+      };
+    })
+    .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
+    .slice(0, 5);
+
+  // Aplica filtro se necessário
+  const filteredMatches = queueId 
+    ? updatedMatches.filter(m => m.queueId === queueId)
+    : updatedMatches;
+
+  console.log(`[QUICK UPDATE] Nova partida adicionada. Total: ${filteredMatches.length} partidas`);
+
+  return {
+    account,
+    matches: filteredMatches,
+    avgCs,
+    avgVision,
+    avgDuration,
+    avgKillParticipation,
+    topChampions
+  };
 }
