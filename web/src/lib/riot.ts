@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache';
+
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
 const REGION_AMERICAS = "americas.api.riotgames.com";
 
@@ -80,30 +82,33 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
 }
 
 export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
-  // Se não tem queueId e não é forceRefresh, usa cache em memória (otimização para filtros)
-  if (!queueId && !forceRefresh) {
-    const cacheKey = `${puuid}_all`;
+  // IMPORTANTE: Sempre usa cache em memória primeiro (independente de queueId)
+  // Isso garante que mudar filtros não faz novas requisições
+  const cacheKey = `${puuid}_all`;
+  if (!forceRefresh) {
     const cached = matchIdsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < MATCH_IDS_CACHE_TTL) {
+      console.log(`[CACHE] Usando IDs de partidas do cache para ${puuid}`);
       return cached.ids.slice(0, count);
     }
   }
   
   // Limpa cache se for forceRefresh
-  if (forceRefresh && !queueId) {
-    const cacheKey = `${puuid}_all`;
+  if (forceRefresh) {
     matchIdsCache.delete(cacheKey);
   }
   
+  // IMPORTANTE: Sempre busca TODAS as partidas (sem filtro de queueId)
+  // O filtro será aplicado depois localmente
   let url = `https://${REGION_AMERICAS}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
   
-  if (queueId) {
-      url += `&queue=${queueId}`;
-  } else if (type) {
+  // Ignora queueId aqui - sempre busca todas para cache compartilhado
+  if (type) {
       url += `&type=${type}`;
   }
   
   try {
+    console.log(`[API] Buscando IDs de partidas para ${puuid} (forceRefresh: ${forceRefresh})`);
     // Cache de 15 minutos - reduz requisições à API (mas ignora se forceRefresh)
     const res = await fetch(url, { 
       headers, 
@@ -115,11 +120,9 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
     }
     const ids = await res.json();
     
-    // Salva no cache em memória se não tem queueId (para reutilizar entre filtros)
-    if (!queueId) {
-      const cacheKey = `${puuid}_all`;
-      matchIdsCache.set(cacheKey, { ids, timestamp: Date.now() });
-    }
+    // Salva no cache em memória (sempre, para reutilizar entre filtros)
+    matchIdsCache.set(cacheKey, { ids, timestamp: Date.now() });
+    console.log(`[CACHE] IDs de partidas salvos no cache para ${puuid} (${ids.length} partidas)`);
     
     return ids;
   } catch (error) {
