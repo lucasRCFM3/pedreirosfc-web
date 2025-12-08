@@ -4,7 +4,7 @@
 # Adiciona o cloudflared ao PATH
 $env:Path += ";$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 
-$TUNNEL_NAME = "pedreirosfc"
+$TUNNEL_NAME = "astryx"
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "Criando Tunnel Permanente (Sem Zone)" -ForegroundColor Cyan

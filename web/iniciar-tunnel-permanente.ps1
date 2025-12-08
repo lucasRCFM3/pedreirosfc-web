@@ -20,7 +20,7 @@ trap {
 $env:Path += ";$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 
 # Nome do túnel (pode mudar se você criou com outro nome)
-$TUNNEL_NAME = "pedreirosfc"
+$TUNNEL_NAME = "astryx"
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "Iniciando Cloudflare Tunnel Permanente..." -ForegroundColor Cyan

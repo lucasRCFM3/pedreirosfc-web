@@ -19,7 +19,7 @@ trap {
 # Adiciona o cloudflared ao PATH
 $env:Path += ";$env:LOCALAPPDATA\Microsoft\WinGet\Links"
 
-$TUNNEL_NAME = "pedreirosfc"
+$TUNNEL_NAME = "astryx"
 $CLOUDFLARED_DIR = "$env:USERPROFILE\.cloudflared"
 $CONFIG_FILE = "$CLOUDFLARED_DIR\config.yml"
 

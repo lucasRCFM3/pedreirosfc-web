@@ -10,9 +10,9 @@ import { CompositionEditor } from "./CompositionEditor";
 import { ChampionAlternatives } from "./ChampionAlternatives";
 
 const ROLE_COLORS = {
-  top: 'border-pedreiro-purple',
+  top: 'border-astryx-purple',
   jungle: 'border-green-400',
-  mid: 'border-pedreiro-blue',
+  mid: 'border-astryx-blue',
   adc: 'border-red-400',
   support: 'border-pink-400'
 };
@@ -261,7 +261,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
             </div>
             <button
               onClick={createNewComposition}
-              className="flex items-center gap-2 px-4 py-2 bg-pedreiro-purple hover:bg-pedreiro-purple/80 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-astryx-purple hover:bg-astryx-purple/80 text-white rounded-lg font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
               Nova Composição
@@ -271,10 +271,10 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
 
         {/* Instruções */}
         {showInstructions && (
-          <div className="bg-pedreiro-purple/20 border border-pedreiro-purple/50 rounded-xl p-4 mb-6">
+          <div className="bg-astryx-purple/20 border border-astryx-purple/50 rounded-xl p-4 mb-6">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
-                <BookOpen className="w-5 h-5 text-pedreiro-purple mt-0.5 flex-shrink-0" />
+                <BookOpen className="w-5 h-5 text-astryx-purple mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <h3 className="font-bold text-white mb-2">Como Editar Composições</h3>
                   <ul className="text-sm text-gray-300 space-y-1">
@@ -306,7 +306,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
           <p className="text-gray-500 text-sm mb-4">Clique em "Nova Composição" para começar.</p>
           <button
             onClick={() => setShowInstructions(true)}
-            className="text-pedreiro-purple hover:text-pedreiro-purple/80 text-sm underline"
+            className="text-astryx-purple hover:text-astryx-purple/80 text-sm underline"
           >
             Ver instruções de como editar
           </button>
@@ -316,7 +316,7 @@ export function EditableCompositions({ version, allChampions }: EditableComposit
           {compositions.map((composition) => (
             <div
               key={composition.id}
-              className="bg-white/5 rounded-3xl p-6 border border-white/10 hover:border-pedreiro-purple/50 hover:bg-white/10 transition-all duration-300"
+              className="bg-white/5 rounded-3xl p-6 border border-white/10 hover:border-astryx-purple/50 hover:bg-white/10 transition-all duration-300"
             >
               <div className="flex items-start md:items-center justify-between mb-4 md:mb-6 gap-4">
                 <div className="flex-1 min-w-0">

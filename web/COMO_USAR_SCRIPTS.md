@@ -10,7 +10,7 @@
 2. **Rode o script** usando `.\` antes do nome:
 
 ```powershell
-cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
+cd "C:\Users\rcfm\Documents\astryx web\web"
 .\criar-tunnel-permanente.ps1
 ```
 
@@ -31,7 +31,7 @@ Se você clicar duas vezes, a janela pode fechar rápido. Para ver o que está a
 1. Abra o PowerShell normalmente
 2. Navegue até a pasta:
    ```powershell
-   cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
+   cd "C:\Users\rcfm\Documents\astryx web\web"
    ```
 3. Execute o script:
    ```powershell
@@ -45,7 +45,7 @@ Se o script encontrar um erro e fechar, você pode ver o que aconteceu:
 1. Abra o PowerShell
 2. Rode o script manualmente:
    ```powershell
-   cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
+   cd "C:\Users\rcfm\Documents\astryx web\web"
    .\criar-tunnel-permanente.ps1
    ```
 3. O erro vai aparecer no terminal e não vai fechar automaticamente
@@ -60,7 +60,7 @@ Se o script encontrar um erro e fechar, você pode ver o que aconteceu:
 
 **Como usar:**
 ```powershell
-cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
+cd "C:\Users\rcfm\Documents\astryx web\web"
 .\criar-tunnel-permanente.ps1
 ```
 
@@ -78,7 +78,7 @@ cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
 
 **Como usar:**
 ```powershell
-cd "C:\Users\rcfm\Documents\pedreirosfc web\web"
+cd "C:\Users\rcfm\Documents\astryx web\web"
 .\iniciar-tunnel-permanente.ps1
 ```
 

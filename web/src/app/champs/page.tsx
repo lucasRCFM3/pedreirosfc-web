@@ -107,7 +107,7 @@ export default function ChampsPage() {
           <Link
             key={name}
             href={`/champs/${championUrl(name).toLowerCase()}`}
-            className="group relative aspect-square rounded-lg overflow-hidden border-2 border-white/10 hover:border-pedreiro-purple/50 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(124,58,237,0.5)]"
+            className="group relative aspect-square rounded-lg overflow-hidden border-2 border-white/10 hover:border-astryx-purple/50 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(124,58,237,0.5)]"
           >
              <Image
                src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championUrl(name)}.png`}

@@ -34,17 +34,17 @@ cloudflared tunnel login
 Crie um túnel com um nome fixo:
 
 ```powershell
-cloudflared tunnel create pedreirosfc
+cloudflared tunnel create astryx
 ```
 
 **O que acontece:**
-- ✅ Cria um túnel chamado `pedreirosfc`
+- ✅ Cria um túnel chamado `astryx`
 - ✅ Gera um arquivo de credenciais (guardado automaticamente)
 - ✅ Mostra o UUID do túnel (guarde isso!)
 
 **✅ Você verá algo como:**
 ```
-Tunnel pedreirosfc created with ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+Tunnel astryx created with ID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 ```
 
 ---
@@ -68,7 +68,7 @@ New-Item -ItemType File -Name "config.yml" -Force
 Agora vamos editar o arquivo. **Substitua `[UUID_DO_TUNEL]` pelo UUID que você viu no passo anterior:**
 
 ```yaml
-tunnel: pedreirosfc
+tunnel: astryx
 credentials-file: C:\Users\[SEU_USUARIO]\.cloudflared\[UUID_DO_TUNEL].json
 
 ingress:
@@ -77,7 +77,7 @@ ingress:
 
 **📝 Exemplo:**
 ```yaml
-tunnel: pedreirosfc
+tunnel: astryx
 credentials-file: C:\Users\rcfm\.cloudflared\a1b2c3d4-e5f6-7890-abcd-ef1234567890.json
 
 ingress:
@@ -91,12 +91,12 @@ ingress:
 Agora você pode rodar o túnel permanente:
 
 ```powershell
-cloudflared tunnel run pedreirosfc
+cloudflared tunnel run astryx
 ```
 
 **O que acontece:**
 - ✅ Conecta ao túnel permanente
-- ✅ Mostra uma URL do tipo: `https://pedreirosfc-[random].trycloudflare.com`
+- ✅ Mostra uma URL do tipo: `https://astryx-[random].trycloudflare.com`
 - ✅ Esta URL será **mais estável** que as URLs temporárias
 
 **🎉 Parabéns!** Agora você tem um túnel permanente!
@@ -115,7 +115,7 @@ cloudflared tunnel run pedreirosfc
 
 2. **Em outro terminal, inicie o túnel:**
    ```powershell
-   cloudflared tunnel run pedreirosfc
+   cloudflared tunnel run astryx
    ```
 
 3. **Copie a URL que aparece** e compartilhe no Discord!
@@ -143,7 +143,7 @@ Vou criar um script que inicia o servidor e o túnel juntos! Fica mais fácil.
 
 Para uma URL **100% fixa** que nunca muda, você precisaria:
 
-1. **Ter um domínio próprio** (ex: `pedreirosfc.xyz` - ~R$15/ano)
+1. **Ter um domínio próprio** (ex: `astryx.xyz` - ~R$15/ano)
 2. **Configurar DNS na Cloudflare**
 3. **Apontar o domínio para o túnel**
 
@@ -154,7 +154,7 @@ Mas o túnel permanente já é **muito melhor** que o temporário!
 ## ❓ Problemas Comuns
 
 ### Erro: "tunnel not found"
-- Verifique se você criou o túnel com `cloudflared tunnel create pedreirosfc`
+- Verifique se você criou o túnel com `cloudflared tunnel create astryx`
 - Verifique se o nome está correto no comando `run`
 
 ### Erro: "credentials file not found"

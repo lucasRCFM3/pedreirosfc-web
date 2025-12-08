@@ -857,7 +857,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
               key={tier}
               data-tier={tier}
               className={`bg-white/5 rounded-xl p-3 border transition-all ${
-                selectedChampion ? 'border-pedreiro-purple/50 cursor-pointer' : 'border-white/10'
+                selectedChampion ? 'border-astryx-purple/50 cursor-pointer' : 'border-white/10'
               }`}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(tier)}
@@ -894,8 +894,8 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                           isMobile ? 'cursor-pointer touch-none' : 'cursor-move'
                         } ${
                           selectedChampion === champion
-                            ? 'border-pedreiro-purple border-2 scale-110 ring-2 ring-pedreiro-purple/50'
-                            : 'border-white/10 hover:border-pedreiro-purple/50'
+                            ? 'border-astryx-purple border-2 scale-110 ring-2 ring-astryx-purple/50'
+                            : 'border-white/10 hover:border-astryx-purple/50'
                         }`}
                       >
                         <Image
@@ -926,7 +926,7 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                 </div>
               ) : (
                 <div className={`text-center py-4 text-gray-500 min-h-[50px] flex items-center justify-center border-2 border-dashed rounded transition-all ${
-                  selectedChampion ? 'border-pedreiro-purple/50 bg-pedreiro-purple/10' : 'border-white/10'
+                  selectedChampion ? 'border-astryx-purple/50 bg-astryx-purple/10' : 'border-white/10'
                 }`}>
                   <p className="text-xs">{selectedChampion ? 'Toque aqui para mover' : 'Arraste campeões aqui'}</p>
                 </div>
@@ -996,10 +996,10 @@ export function EditableChampionPool({ initialRole, version, allChampions }: Edi
                 onClick={() => handleChampionClick(champion.name)}
                 className={`group relative aspect-square rounded overflow-hidden border-2 transition-all duration-300 hover:scale-110 cursor-pointer ${
                   selectedChampion === champion.name
-                    ? 'border-pedreiro-purple border-2 scale-110 ring-2 ring-pedreiro-purple/50'
+                    ? 'border-astryx-purple border-2 scale-110 ring-2 ring-astryx-purple/50'
                     : isInPool 
                       ? 'border-green-500/50 bg-green-500/10' 
-                      : 'border-white/10 hover:border-pedreiro-purple/50'
+                      : 'border-white/10 hover:border-astryx-purple/50'
                 }`}
                 title={champion.name}
               >

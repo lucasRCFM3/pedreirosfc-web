@@ -63,7 +63,7 @@ function getVisionColor(visionPerMin: number, role: Role): string {
 function getWinRateColor(winRate: number): string {
     if (winRate < 50) return 'text-red-400';
     if (winRate <= 54) return 'text-yellow-400';
-    return 'text-pedreiro-blue';
+    return 'text-astryx-blue';
 }
 
 function getKillParticipationColor(kp: number, role: Role): string {
@@ -155,9 +155,9 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 border-b border-white/5 pb-8">
             <div className="flex items-center gap-6">
                 <div className="relative group">
-                    <div className="absolute inset-0 bg-pedreiro-purple/20 blur-xl rounded-full group-hover:bg-pedreiro-purple/30 transition-all duration-500" />
+                    <div className="absolute inset-0 bg-astryx-purple/20 blur-xl rounded-full group-hover:bg-astryx-purple/30 transition-all duration-500" />
                     <div className="relative p-4 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-sm">
-                        <Icon className="w-10 h-10 text-pedreiro-purple" />
+                        <Icon className="w-10 h-10 text-astryx-purple" />
                     </div>
                 </div>
                 <div>
@@ -315,7 +315,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                         className="group flex items-center gap-2 md:gap-4 p-2 md:p-3 lg:p-4 rounded-lg md:rounded-xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 hover:bg-[#0f0f0f] transition-all duration-300"
                     >
                         {/* Status Strip */}
-                        <div className={`w-1 h-12 rounded-full ${isWin ? 'bg-pedreiro-blue' : 'bg-red-500/50'}`} />
+                        <div className={`w-1 h-12 rounded-full ${isWin ? 'bg-astryx-blue' : 'bg-red-500/50'}`} />
 
                         {/* Champion */}
                         <div className="flex items-center gap-2 md:gap-4 w-32 md:w-48 flex-shrink-0">
@@ -421,7 +421,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                                   <div className="flex-1 min-w-0">
                                       <div className="flex justify-between items-center mb-1">
                                           <p className="font-bold text-sm text-white truncate">{champ.name || 'Desconhecido'}</p>
-                                          <p className={`text-xs font-bold ${winRateNum >= 50 ? 'text-pedreiro-blue' : 'text-red-400'}`}>
+                                          <p className={`text-xs font-bold ${winRateNum >= 50 ? 'text-astryx-blue' : 'text-red-400'}`}>
                                               {isNaN(winRateNum) ? '0' : winRateNum}% WR
                                           </p>
                                       </div>
@@ -432,7 +432,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
                                       
                                       <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                                           <div 
-                                              className={`h-full rounded-full ${winRateNum >= 50 ? 'bg-pedreiro-blue' : 'bg-red-500'}`} 
+                                              className={`h-full rounded-full ${winRateNum >= 50 ? 'bg-astryx-blue' : 'bg-red-500'}`} 
                                               style={{ width: `${Math.min(100, Math.max(0, winRateNum))}%` }}
                                           />
                                       </div>

@@ -46,9 +46,9 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
   );
 
   const roleColors = {
-    top: 'border-pedreiro-purple',
+    top: 'border-astryx-purple',
     jungle: 'border-green-400',
-    mid: 'border-pedreiro-blue',
+    mid: 'border-astryx-blue',
     adc: 'border-red-400',
     support: 'border-pink-400'
   };
@@ -110,8 +110,8 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
             {composition.winConditions.map((condition) => (
               <div key={condition.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pedreiro-purple/20 flex items-center justify-center">
-                    <span className="text-pedreiro-purple font-bold text-sm">{condition.id}</span>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-astryx-purple/20 flex items-center justify-center">
+                    <span className="text-astryx-purple font-bold text-sm">{condition.id}</span>
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-white mb-1">{condition.title}</p>
@@ -153,7 +153,7 @@ export default async function CompositionDetailPage(props: { params: Promise<{ i
         {composition.draft && (
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-pedreiro-blue" />
+            <Target className="w-5 h-5 text-astryx-blue" />
             <h3 className="text-xl font-bold text-white">Fase de Draft</h3>
           </div>
           {composition.draft.bans && composition.draft.bans.length > 0 && (

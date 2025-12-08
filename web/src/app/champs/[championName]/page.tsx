@@ -26,9 +26,9 @@ const ROLE_LABELS = {
 };
 
 const ROLE_COLORS = {
-  top: 'text-pedreiro-purple',
+  top: 'text-astryx-purple',
   jungle: 'text-green-400',
-  mid: 'text-pedreiro-blue',
+  mid: 'text-astryx-blue',
   adc: 'text-red-400',
   support: 'text-pink-400',
 };
@@ -118,7 +118,7 @@ export default async function ChampionDetailPage(props: { params: Promise<{ cham
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-3">
-          <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg group hover:border-pedreiro-purple/50 transition-all duration-300">
+          <div className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg group hover:border-astryx-purple/50 transition-all duration-300">
             <Image
               src={`https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championUrl(championName)}.png`}
               alt={championName}
@@ -150,7 +150,7 @@ export default async function ChampionDetailPage(props: { params: Promise<{ cham
                 href="https://mobalytics.gg"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-pedreiro-purple hover:text-pedreiro-blue transition-colors flex items-center gap-1 font-medium hover:underline"
+                className="text-astryx-purple hover:text-astryx-blue transition-colors flex items-center gap-1 font-medium hover:underline"
               >
                 Mobalytics
                 <ExternalLink className="w-3 h-3" />

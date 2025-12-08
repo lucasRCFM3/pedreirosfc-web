@@ -10,9 +10,9 @@ import {
 import Image from "next/image";
 
 const ROLE_COLORS = {
-  top: 'border-pedreiro-purple',
+  top: 'border-astryx-purple',
   jungle: 'border-green-400',
-  mid: 'border-pedreiro-blue',
+  mid: 'border-astryx-blue',
   adc: 'border-red-400',
   support: 'border-pink-400'
 };
@@ -254,9 +254,9 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto">
       <div className="min-h-screen p-4 md:p-8">
-        <div className="max-w-6xl mx-auto bg-pedreiro-card rounded-2xl border border-white/10 shadow-2xl">
+        <div className="max-w-6xl mx-auto bg-astryx-card rounded-2xl border border-white/10 shadow-2xl">
           {/* Header */}
-          <div className="sticky top-0 bg-pedreiro-card/95 backdrop-blur-sm border-b border-white/10 p-6 rounded-t-2xl z-10">
+          <div className="sticky top-0 bg-astryx-card/95 backdrop-blur-sm border-b border-white/10 p-6 rounded-t-2xl z-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-3xl font-black text-white">Editar Composição</h2>
               <div className="flex items-center gap-2">
@@ -268,7 +268,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-pedreiro-purple hover:bg-pedreiro-purple/80 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-astryx-purple hover:bg-astryx-purple/80 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   Salvar
@@ -344,7 +344,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                 {editedComp.winConditions.map((wc) => (
                   <div key={wc.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <div className="flex items-start justify-between mb-3">
-                      <span className="text-sm font-bold text-pedreiro-purple">#{wc.id}</span>
+                      <span className="text-sm font-bold text-astryx-purple">#{wc.id}</span>
                       <button
                         onClick={() => removeWinCondition(wc.id)}
                         className="p-1 hover:bg-red-500/20 rounded text-red-400 transition-colors"
@@ -371,7 +371,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                 ))}
                 <button
                   onClick={addWinCondition}
-                  className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-white hover:border-pedreiro-purple hover:bg-pedreiro-purple/10 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-white hover:border-astryx-purple hover:bg-astryx-purple/10 transition-colors flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Condição de Vitória
@@ -471,7 +471,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                         type="text"
                         value={key}
                         onChange={(e) => updateSynergyKey(key, e.target.value)}
-                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm font-bold focus:outline-none focus:border-pedreiro-purple"
+                        className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm font-bold focus:outline-none focus:border-astryx-purple"
                         placeholder="Ex: Jinx + Lulu"
                       />
                       <button
@@ -494,7 +494,7 @@ export function CompositionEditor({ composition, version, allChampions, onSave, 
                 ))}
                 <button
                   onClick={addSynergy}
-                  className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-white hover:border-pedreiro-purple hover:bg-pedreiro-purple/10 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2 border-2 border-dashed border-white/20 rounded-lg text-white hover:border-astryx-purple hover:bg-astryx-purple/10 transition-colors flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Sinergia
@@ -580,7 +580,7 @@ function EditableField({ label, value, onChange, placeholder, help, textarea, ro
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={textarea ? rows : undefined}
-        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pedreiro-purple transition-colors"
+        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-astryx-purple transition-colors"
       />
     </div>
   );
@@ -766,7 +766,7 @@ function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help, showC
             value={item}
             onChange={(e) => onUpdate(index, e.target.value)}
             placeholder={placeholder}
-            className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-pedreiro-purple"
+            className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-astryx-purple"
           />
           <button
             onClick={() => onRemove(index)}
@@ -779,7 +779,7 @@ function ListEditor({ items, onAdd, onRemove, onUpdate, placeholder, help, showC
       ))}
       <button
         onClick={onAdd}
-        className="w-full py-2 border border-dashed border-white/20 rounded text-white text-sm hover:border-pedreiro-purple hover:bg-pedreiro-purple/10 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-2 border border-dashed border-white/20 rounded text-white text-sm hover:border-astryx-purple hover:bg-astryx-purple/10 transition-colors flex items-center justify-center gap-2"
       >
         <Plus className="w-3 h-3" />
         Adicionar
@@ -853,7 +853,7 @@ function ChampionSectionEditor({ champion, allChampions, version, onUpdate }: Ch
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar campeão..."
-                className="w-full mb-3 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-pedreiro-purple"
+                className="w-full mb-3 px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:border-astryx-purple"
                 autoFocus
               />
               <div className="grid grid-cols-4 gap-2">
@@ -865,7 +865,7 @@ function ChampionSectionEditor({ champion, allChampions, version, onUpdate }: Ch
                       setIsOpen(false);
                       setSearchTerm("");
                     }}
-                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-white/20 hover:border-pedreiro-purple transition-colors"
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-white/20 hover:border-astryx-purple transition-colors"
                     title={champ.name}
                   >
                     <Image

@@ -33,7 +33,7 @@ export function ChampionAlternatives({ champion, version, roleColor, roleLabel }
         </div>
         <p className="font-bold text-white text-sm md:text-base lg:text-lg">{champion.name}</p>
         <p className="text-[10px] md:text-xs text-gray-400 uppercase tracking-wider mb-1">{roleLabel}</p>
-        <p className="text-[10px] md:text-xs text-pedreiro-blue font-semibold">{champion.type}</p>
+        <p className="text-[10px] md:text-xs text-astryx-blue font-semibold">{champion.type}</p>
       </div>
       <div className="border-t border-white/10 pt-2 md:pt-3">
         <p className="text-[10px] md:text-xs text-gray-300 leading-relaxed">{champion.function}</p>

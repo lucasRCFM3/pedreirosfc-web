@@ -99,7 +99,7 @@ export function RefreshButton({ role, filter }: RefreshButtonProps) {
         flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
         ${cooldown > 0 || isRefreshing
           ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-          : 'bg-pedreiro-purple/20 text-white hover:bg-pedreiro-purple/30 border border-pedreiro-purple/50 hover:border-pedreiro-purple/70'}
+          : 'bg-astryx-purple/20 text-white hover:bg-astryx-purple/30 border border-astryx-purple/50 hover:border-astryx-purple/70'}
       `}
     >
       <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />

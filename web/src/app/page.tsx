@@ -5,11 +5,11 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8 text-center">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-[-1]">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-pedreiro-purple/10 rounded-full blur-[100px] animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-astryx-purple/10 rounded-full blur-[100px] animate-pulse" />
       </div>
 
-      <h1 className="text-4xl sm:text-6xl md:text-8xl font-black bg-clip-text text-transparent bg-gradient-to-r from-pedreiro-purple via-white to-pedreiro-blue mb-6 md:mb-8 tracking-tighter">
-        PEDREIROS<br/>FC
+      <h1 className="text-4xl sm:text-6xl md:text-8xl font-black bg-clip-text text-transparent bg-gradient-to-r from-astryx-purple via-white to-astryx-blue mb-6 md:mb-8 tracking-tighter">
+        ASTRYX
           </h1>
       <p className="text-base md:text-xl text-gray-400 max-w-2xl mb-8 md:mb-12 leading-relaxed px-4">
         Acompanhe o desempenho, estatísticas e evolução do nosso time rumo ao topo.
