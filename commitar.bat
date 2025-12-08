@@ -1,4 +1,4 @@
-cd "c:\Users\rcfm\Documents\pedreirosfc web"
+cd "C:\Users\rcfm\Documents\astryx web"
 git add .
-git commit -m "champion pool sync more fast2"
+git commit -m "novo nome"
 git push
