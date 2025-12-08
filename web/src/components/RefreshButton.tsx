@@ -77,11 +77,16 @@ export function RefreshButton({ role, filter }: RefreshButtonProps) {
         const remaining = data.cooldown || 120;
         setCooldown(remaining);
         alert(data.error || "Aguarde antes de atualizar novamente.");
-      } else if (res.ok) {
+      } else if (res.ok && data.success) {
         setCooldown(120);
-        router.refresh();
+        // Aguarda um pouco antes de fazer refresh para garantir que os dados foram salvos
+        setTimeout(() => {
+          router.refresh();
+        }, 500);
       } else {
-        alert(data.error || "Erro ao atualizar dados.");
+        const errorMsg = data.error || "Erro ao atualizar dados.";
+        alert(errorMsg);
+        console.error("Refresh error:", data);
       }
     } catch (error) {
       console.error("Refresh error:", error);

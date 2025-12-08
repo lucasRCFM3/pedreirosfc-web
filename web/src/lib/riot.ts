@@ -79,14 +79,20 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
   }
 }
 
-export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queueId?: number, type: string = "ranked"): Promise<string[]> {
-  // Se não tem queueId, usa cache em memória (otimização para filtros)
-  if (!queueId) {
+export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
+  // Se não tem queueId e não é forceRefresh, usa cache em memória (otimização para filtros)
+  if (!queueId && !forceRefresh) {
     const cacheKey = `${puuid}_all`;
     const cached = matchIdsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < MATCH_IDS_CACHE_TTL) {
       return cached.ids.slice(0, count);
     }
+  }
+  
+  // Limpa cache se for forceRefresh
+  if (forceRefresh && !queueId) {
+    const cacheKey = `${puuid}_all`;
+    matchIdsCache.delete(cacheKey);
   }
   
   let url = `https://${REGION_AMERICAS}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
@@ -98,9 +104,15 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
   }
   
   try {
-    // Cache de 15 minutos - reduz requisições à API
-    const res = await fetch(url, { headers, next: { revalidate: 900 } });
-    if (!res.ok) return [];
+    // Cache de 15 minutos - reduz requisições à API (mas ignora se forceRefresh)
+    const res = await fetch(url, { 
+      headers, 
+      next: forceRefresh ? { revalidate: 0 } : { revalidate: 900 } 
+    });
+    if (!res.ok) {
+      console.error(`[API] Erro ao buscar IDs de partidas: ${res.status}`);
+      return [];
+    }
     const ids = await res.json();
     
     // Salva no cache em memória se não tem queueId (para reutilizar entre filtros)
@@ -111,6 +123,7 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 20, queu
     
     return ids;
   } catch (error) {
+    console.error(`[API] Erro ao buscar IDs de partidas:`, error);
     return [];
   }
 }
@@ -196,18 +209,48 @@ async function getMatchDetailsInBatches(matchIds: string[], forceRefresh: boolea
 
 export async function getPlayerStats(gameName: string, tagLine: string, queueId?: number, forceRefresh: boolean = false, role?: string) {
   const account = await getAccountByRiotId(gameName, tagLine);
-  if (!account) return null;
+  if (!account) {
+    console.error(`[API] Conta não encontrada: ${gameName}#${tagLine}`);
+    return null;
+  }
 
   // OTIMIZAÇÃO: Sempre busca TODAS as partidas (sem filtro de queueId)
   // Filtra localmente depois - evita múltiplas requisições ao mudar filtros
   const [matchIds, version] = await Promise.all([
-      getMatchIdsByPuuid(account.puuid, 20, undefined), // Sempre busca todas
+      getMatchIdsByPuuid(account.puuid, 20, undefined, "ranked", forceRefresh), // Sempre busca todas
       getLatestDDVersion()
   ]);
+  
+  if (!matchIds || matchIds.length === 0) {
+    console.warn(`[API] Nenhuma partida encontrada para ${gameName}#${tagLine}`);
+    // Retorna objeto vazio mas válido ao invés de null
+    return {
+      account,
+      matches: [],
+      avgCs: "0",
+      avgVision: "0",
+      avgDuration: 0,
+      avgKillParticipation: 0,
+      topChampions: []
+    };
+  }
   
   // Processa partidas em batches para respeitar rate limit da API
   // Development key: 100 req/2min, então fazemos batches de 5 com delay
   const matches = await getMatchDetailsInBatches(matchIds, forceRefresh);
+
+  if (!matches || matches.length === 0) {
+    console.warn(`[API] Nenhum detalhe de partida encontrado para ${gameName}#${tagLine}`);
+    return {
+      account,
+      matches: [],
+      avgCs: "0",
+      avgVision: "0",
+      avgDuration: 0,
+      avgKillParticipation: 0,
+      topChampions: []
+    };
+  }
 
   // Filtra localmente por queueId se especificado
   const filteredMatches = queueId 

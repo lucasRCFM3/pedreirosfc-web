@@ -30,13 +30,27 @@ export async function POST(request: NextRequest) {
     cooldowns.set(role, now);
 
     // Busca dados com forceRefresh
-    const data = await getPlayerStats(member.gameName, member.tagLine, queueId, true, role);
+    try {
+      const data = await getPlayerStats(member.gameName, member.tagLine, queueId, true, role);
 
-    if (!data) {
-      return NextResponse.json({ error: "Erro ao buscar dados" }, { status: 500 });
+      if (!data) {
+        console.error(`[API] getPlayerStats retornou null para ${member.gameName}#${member.tagLine}`);
+        return NextResponse.json({ error: "Erro ao buscar dados - jogador não encontrado ou sem partidas" }, { status: 500 });
+      }
+
+      // Verifica se há partidas (pode estar vazio se o filtro não encontrou nada)
+      if (data.matches && data.matches.length === 0 && queueId) {
+        console.warn(`[API] Nenhuma partida encontrada para ${member.gameName}#${member.tagLine} com queueId ${queueId}`);
+        // Retorna sucesso mesmo sem partidas, mas com array vazio
+      }
+
+      return NextResponse.json({ success: true, data });
+    } catch (error) {
+      console.error(`[API] Erro ao buscar dados para ${member.gameName}#${member.tagLine}:`, error);
+      return NextResponse.json({ 
+        error: error instanceof Error ? error.message : "Erro ao buscar dados" 
+      }, { status: 500 });
     }
-
-    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error("[API] Refresh error:", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

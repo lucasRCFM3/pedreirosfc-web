@@ -288,6 +288,14 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
             <div className="p-12 border border-white/5 bg-white/5 rounded-3xl text-center backdrop-blur-sm">
                 <p className="text-gray-400">Carregando dados ou jogador não encontrado...</p>
             </div>
+        ) : data.matches.length === 0 ? (
+            <div className="p-12 border border-white/5 bg-white/5 rounded-3xl text-center backdrop-blur-sm">
+                <p className="text-gray-400">
+                    {filter === 'solo' ? 'Nenhuma partida Solo/Duo encontrada nas últimas 20 partidas.' :
+                     filter === 'flex' ? 'Nenhuma partida Flex encontrada nas últimas 20 partidas.' :
+                     'Nenhuma partida encontrada.'}
+                </p>
+            </div>
         ) : (
             <div className="flex flex-col gap-3">
                 {data.matches.map((match) => {
