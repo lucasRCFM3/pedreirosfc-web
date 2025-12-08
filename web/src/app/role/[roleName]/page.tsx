@@ -129,6 +129,7 @@ export default async function RolePage(props: { params: Promise<{ roleName: stri
   const Icon = ICONS[roleKey];
 
   // Busca as últimas 10 partidas já filtradas pelo tipo
+  // Cada filtro tem seu próprio cache
   let queueId: number | undefined;
   if (filter === 'solo') queueId = 420;
   if (filter === 'flex') queueId = 440;

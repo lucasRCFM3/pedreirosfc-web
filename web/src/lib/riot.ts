@@ -100,7 +100,7 @@ export async function getAccountByRiotId(gameName: string, tagLine: string): Pro
 }
 
 export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queueId?: number, type: string = "ranked", forceRefresh: boolean = false): Promise<string[]> {
-  // Cache key inclui queueId para cache separado por filtro
+  // Cache separado por filtro: all, solo (420), flex (440)
   const cacheKey = queueId ? `${puuid}_${queueId}` : `${puuid}_all`;
   
   if (!forceRefresh) {
@@ -116,7 +116,7 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queu
     matchIdsCache.delete(cacheKey);
   }
   
-  // Busca partidas já filtradas pelo queueId se fornecido
+  // Busca as últimas partidas já filtradas pelo queueId se fornecido
   let url = `https://${REGION_AMERICAS}/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=${count}`;
   
   if (queueId) {
@@ -126,7 +126,7 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queu
   }
   
   try {
-    console.log(`[API] Buscando IDs de partidas para ${puuid} (forceRefresh: ${forceRefresh})`);
+    console.log(`[API] Buscando IDs de partidas para ${puuid} (queueId: ${queueId || 'all'}, forceRefresh: ${forceRefresh})`);
     // Cache de 15 minutos - reduz requisições à API (mas ignora se forceRefresh)
     const res = await fetch(url, { 
       headers, 
@@ -138,7 +138,7 @@ export async function getMatchIdsByPuuid(puuid: string, count: number = 10, queu
     }
     const ids = await res.json();
     
-    // Salva no cache em memória (com chave específica por filtro)
+    // Salva no cache em memória (cache separado por filtro)
     matchIdsCache.set(cacheKey, { ids, timestamp: Date.now() });
     console.log(`[CACHE] IDs de partidas salvos no cache para ${puuid} (queueId: ${queueId || 'all'}, ${ids.length} partidas)`);
     
@@ -238,15 +238,15 @@ export async function getPlayerStats(gameName: string, tagLine: string, queueId?
     return null;
   }
 
-  // OTIMIZAÇÃO: Sempre busca TODAS as partidas (sem filtro de queueId)
-  // Filtra localmente depois - evita múltiplas requisições ao mudar filtros
+  // Busca as últimas 10 partidas já filtradas pelo queueId se fornecido
+  // Cada filtro tem seu próprio cache
   const [matchIds, version] = await Promise.all([
-      getMatchIdsByPuuid(account.puuid, 10, queueId, "ranked", forceRefresh), // Busca já filtrado pelo queueId
+      getMatchIdsByPuuid(account.puuid, 10, queueId, "ranked", forceRefresh),
       getLatestDDVersion()
   ]);
   
   if (!matchIds || matchIds.length === 0) {
-    console.warn(`[API] Nenhuma partida encontrada para ${gameName}#${tagLine}`);
+    console.warn(`[API] Nenhuma partida encontrada para ${gameName}#${tagLine} (queueId: ${queueId || 'all'})`);
     // Retorna objeto vazio mas válido ao invés de null
     return {
       account,
@@ -434,7 +434,8 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   }
 
   const latestMatchId = latestMatchIds[0];
-  const cacheKey = `${account.puuid}_last`;
+  // Cache da última partida separado por filtro
+  const cacheKey = queueId ? `${account.puuid}_last_${queueId}` : `${account.puuid}_last`;
   const cachedLastMatch = lastMatchCache.get(cacheKey);
 
   // Se a última partida é a mesma que já temos, não precisa atualizar
@@ -455,6 +456,13 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   // Atualiza o cache da última partida
   lastMatchCache.set(cacheKey, { matchId: latestMatchId, timestamp: Date.now() });
 
+  // Verifica se a nova partida corresponde ao filtro (se houver)
+  if (queueId && newMatch.info.queueId !== queueId) {
+    console.log(`[QUICK UPDATE] Nova partida ${latestMatchId} não corresponde ao filtro ${queueId}`);
+    // Retorna dados existentes do cache (sem fazer novas requisições)
+    return await getPlayerStats(gameName, tagLine, queueId, false, role);
+  }
+
   // Busca os dados existentes do cache (sem fazer novas requisições)
   // Usa o mesmo queueId para manter consistência com o filtro
   const existingData = await getPlayerStats(gameName, tagLine, queueId, false, role);
@@ -468,13 +476,6 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   const alreadyExists = existingData.matches.some(m => m.matchId === latestMatchId);
   if (alreadyExists) {
     console.log(`[QUICK UPDATE] Partida ${latestMatchId} já está nos dados existentes`);
-    // Aplica filtro se necessário
-    if (queueId) {
-      return {
-        ...existingData,
-        matches: existingData.matches.filter(m => m.queueId === queueId)
-      };
-    }
     return existingData;
   }
 
@@ -514,6 +515,7 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   };
 
   // Adiciona a nova partida no início e mantém apenas as 10 mais recentes
+  // Como já filtramos por queueId antes, não precisa filtrar novamente
   const updatedMatches = [newMatchData, ...existingData.matches].slice(0, 10);
 
   // Recalcula estatísticas
@@ -526,7 +528,7 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
   const totalKillParticipation = updatedMatches.reduce((acc, curr) => acc + (curr?.killParticipation || 0), 0);
   const avgKillParticipation = updatedMatches.length > 0 ? totalKillParticipation / updatedMatches.length : 0;
 
-  // Recalcula top champions (código simplificado)
+  // Recalcula top champions
   const champStats: Record<string, { name: string, wins: number, total: number, kills: number, deaths: number, assists: number }> = {};
   updatedMatches.forEach(match => {
     const name = match.champion;
@@ -554,16 +556,11 @@ export async function checkLatestMatch(gameName: string, tagLine: string, queueI
     .sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate))
     .slice(0, 5);
 
-  // Aplica filtro se necessário
-  const filteredMatches = queueId 
-    ? updatedMatches.filter(m => m.queueId === queueId)
-    : updatedMatches;
-
-  console.log(`[QUICK UPDATE] Nova partida adicionada. Total: ${filteredMatches.length} partidas`);
+  console.log(`[QUICK UPDATE] Nova partida adicionada. Total: ${updatedMatches.length} partidas`);
 
   return {
     account,
-    matches: filteredMatches,
+    matches: updatedMatches,
     avgCs,
     avgVision,
     avgDuration,
